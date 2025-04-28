@@ -132,3 +132,13 @@ def invoke_model(messages):
     )
 
     return completion.choices[0].message.content
+
+# create a function to help the user to create a hypothesis for a spatial analysis by prompting the user with questions and display the hypothesis in a bullet point format 
+def create_hypothesis(messages):
+    client = OpenAI()
+    completion = client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=messages
+    )
+    return completion.choices[0].message.content
+
