@@ -30,7 +30,7 @@ st.write("""
         an agent to help you research urban trends and build hypotheses for your spatial analysis projects
     </h1>
 </div>
-""", unsafe_allow_html=True)
+""", unsafe_allow_html=True)    
 
 # Initialize session state
 if "stage" not in st.session_state:
@@ -108,7 +108,7 @@ if st.session_state.stage == "initial":
     timeframe = f"{start_year}-{end_year}"
     doc_type = st.selectbox("Document Type", ["All Types", "Reports", "Research Papers", "Urban Strategy Documents", "Technical Reports", "Smart City Projects"])
     num_results = st.number_input("Number of results", min_value=1, max_value=10, value=5)
-
+    
     if st.button("🔍 Start Research"):
         if not st.session_state.selected_location:
             st.warning("Please enter a valid city and wait for the map to load.")
@@ -137,57 +137,141 @@ if st.session_state.stage == "initial":
 elif st.session_state.stage == "chat":
     st.subheader("💬 Research Assistant")
 
-    # Display chat history first (assistant + user)
-    for message in st.session_state.messages[1:]:  # Skip system message
-        with st.chat_message(message["role"]):
-            st.markdown(message["content"])
+    # Display search results first
+    for idx, result in enumerate(st.session_state.results, 1):
+        # Extract year from content
+        year_pattern = r'20[0-2]\d|19\d{2}'  # Matches years from 1900-2029
+        content_years = re.findall(year_pattern, result.get('content', ''))
+        # Use the first year found or empty string if none found
+        year = content_years[0] if content_years else ""
+        
+        # Use URL as fallback if title is just "pdf"
+        display_title = result['title'] if result['title'].lower() != "pdf" else result['url'].split('/')[-1]
+        if year:
+            display_title = f"{display_title} ({year})"
 
-    # Then show search previews (in "curate" mode only)
-    if st.session_state.mode == "curate" and st.session_state.results:
-        st.markdown("### 📄 Browse Results")
+        # Create columns for the result and buttons
+        col1, col2, col3 = st.columns([0.8, 0.1, 0.1])
+        
+        with col1:
+            with st.expander(f"{idx}. {display_title}"):
+                st.write(result["content"][:300] + "...")
+                st.markdown(f"[🔗 View source]({result['url']})")
+        
+        # Container for success messages
+        msg_container = st.container()
+        
+        with col2:
+            if st.button(f"📌", key=f"add_{idx}", help="Add to My Box"):
+                if result not in st.session_state.selected_results:
+                    st.session_state.selected_results.append(result)
+                    with msg_container:
+                        st.success("Added to your Research Box", icon="✅")
+                else:
+                    with msg_container:
+                        st.info("Already in your box.", icon="ℹ️")
+        
+        with col3:
+            if st.button(f"🔍", key=f"refine_{idx}", help="Select for refined topic"):
+                if result not in st.session_state.refined_results:
+                    st.session_state.refined_results.append(result)
+                    with msg_container:
+                        st.success("Selected for refined topic", icon="✅")
+                else:
+                    with msg_container:
+                        st.info("Already selected for refinement", icon="ℹ️")
 
-        for idx, result in enumerate(st.session_state.results, 1):
-            # Extract year from content
-            year_pattern = r'20[0-2]\d|19\d{2}'  # Matches years from 1900-2029
-            content_years = re.findall(year_pattern, result.get('content', ''))
-            # Use the first year found or empty string if none found
-            year = content_years[0] if content_years else ""
-            
-            # Use URL as fallback if title is just "pdf"
-            display_title = result['title'] if result['title'].lower() != "pdf" else result['url'].split('/')[-1]
-            if year:
-                display_title = f"{display_title} ({year})"
+    # Show navigation options after results
+    st.divider()
 
-            # Create columns for the result and buttons
-            col1, col2, col3 = st.columns([0.8, 0.1, 0.1])
+    # Custom CSS for magical boxes and buttons
+    st.markdown("""
+    <style>
+        .magical-box {
+            background-color: #f8f9fa;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 10px 0;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+            height: 160px;  /* Fixed height for both boxes */
+            position: relative;  /* For button positioning */
+        }
+        .magical-box:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
+        }
+        .box-title {
+            font-size: 1.2em;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #1f1f1f;
+        }
+        .box-content {
+            color: #666;
+            font-size: 1em;
+        }
+        .button-container {
+            position: absolute;
+            bottom: 15px;
+            left: 15px;
+            right: 15px;
+        }
+    </style>
+    """, unsafe_allow_html=True)
+
+    col_box, col_refine = st.columns(2)
+    
+    with col_box:
+        st.markdown("""
+        <div class="magical-box">
+            <div class="box-title">📚 Research Box</div>
+        """, unsafe_allow_html=True)
+        
+        if st.session_state.selected_results:
+            col_count, col_clear = st.columns([0.7, 0.3])
+            with col_count:
+                st.write(f"{len(st.session_state.selected_results)} items selected")
+            with col_clear:
+                if st.button("🗑️", key="clear_box", help="Clear all selections"):
+                    st.session_state.selected_results = []
+                    st.rerun()
             
-            with col1:
-                with st.expander(f"{idx}. {display_title}"):
-                    st.write(result["content"][:300] + "...")
-                    st.markdown(f"[🔗 View source]({result['url']})")
+            st.markdown('<div class="button-container">', unsafe_allow_html=True)
+            if st.button("✨ Open Research Box", use_container_width=True):
+                st.session_state.stage = "research_box"
+                st.rerun()
+            st.markdown('</div>', unsafe_allow_html=True)
+        else:
+            st.markdown('<div class="box-content">No items selected yet</div>', unsafe_allow_html=True)
+        
+        st.markdown("</div>", unsafe_allow_html=True)
+    
+    with col_refine:
+        st.markdown("""
+        <div class="magical-box">
+            <div class="box-title">🔍 For Refinement</div>
+        """, unsafe_allow_html=True)
+        
+        if st.session_state.refined_results:
+            col_count, col_clear = st.columns([0.7, 0.3])
+            with col_count:
+                st.write(f"{len(st.session_state.refined_results)} items selected")
+            with col_clear:
+                if st.button("🗑️", key="clear_refine", help="Clear all selections"):
+                    st.session_state.refined_results = []
+                    st.rerun()
             
-            # Container for success messages
-            msg_container = st.container()
-            
-            with col2:
-                if st.button(f"📌", key=f"add_{idx}", help="Add to My Box"):
-                    if result not in st.session_state.selected_results:
-                        st.session_state.selected_results.append(result)
-                        with msg_container:
-                            st.success("Added to your Research Box", icon="✅")
-                    else:
-                        with msg_container:
-                            st.info("Already in your box.", icon="ℹ️")
-            
-            with col3:
-                if st.button(f"🔍", key=f"refine_{idx}", help="Select for refined topic"):
-                    if result not in st.session_state.refined_results:
-                        st.session_state.refined_results.append(result)
-                        with msg_container:
-                            st.success("Selected for refined topic", icon="✅")
-                    else:
-                        with msg_container:
-                            st.info("Already selected for refinement", icon="ℹ️")
+            st.markdown('<div class="button-container">', unsafe_allow_html=True)
+            if st.button("🕵🏻‍♀️ Start Refinement", use_container_width=True):
+                st.session_state.stage = "refine_search"
+                st.rerun()
+            st.markdown('</div>', unsafe_allow_html=True)
+        else:
+            st.markdown('<div class="box-content">No items selected yet</div>', unsafe_allow_html=True)
+        
+        st.markdown("</div>", unsafe_allow_html=True)
 
     # Input field
     if prompt := st.chat_input("Ask me anything about the research..."):
@@ -202,5 +286,84 @@ elif st.session_state.stage == "chat":
         st.session_state.messages.append({"role": "assistant", "content": response["message"]})
 
         with st.chat_message("assistant"):
+            st.markdown(response["message"])
+
+# Add new stages
+elif st.session_state.stage == "research_box":
+    st.subheader("📚 My Research Box")
+    if st.button("← Back to Results"):
+        st.session_state.stage = "chat"
+        st.rerun()
+    
+    for idx, result in enumerate(st.session_state.selected_results, 1):
+        with st.expander(f"{idx}. {result['title']}"):
+            st.write(result["content"][:300] + "...")
+            st.markdown(f"[🔗 View source]({result['url']})")
+
+elif st.session_state.stage == "refine_search":
+    st.subheader("🔍 Refine Search")
+    
+    # Navigation options
+    col1, col2 = st.columns([0.2, 0.8])
+    with col1:
+        if st.button("← Back to Results"):
+            st.session_state.stage = "chat"
+            st.rerun()
+        if st.button("📚 Go to Box"):
+            st.session_state.stage = "research_box"
+            st.rerun()
+    
+    # Show documents first
+    st.markdown("### 📄 Selected Documents")
+    for idx, result in enumerate(st.session_state.refined_results, 1):
+        with st.expander(f"{idx}. {result['title']}"):
+            st.write(result["content"][:300] + "...")
+            st.markdown(f"[🔗 View source]({result['url']})")
+    
+    # Add a divider between documents and refinement options
+    st.divider()
+    
+    # Then show refinement options
+    st.markdown("### 🎯 What would you like to know about these documents?")
+    st.write("Choose an analysis approach and keep refining until you're ready to move to your Research Box.")
+    
+    # Refinement options in columns for better layout
+    col_left, col_right = st.columns(2)
+    
+    with col_left:
+        refine_option = st.radio(
+            "Analysis approach:",
+            ["Focus on a specific aspect", 
+             "Compare specific elements", 
+             "Find connections", 
+             "Extract data/statistics"]
+        )
+    
+    with col_right:
+        if refine_option == "Focus on a specific aspect":
+            refined_topic = st.text_input("What specific aspect would you like to focus on?")
+            prompt_prefix = f"Focus on {refined_topic} within these documents"
+        elif refine_option == "Compare specific elements":
+            refined_topic = st.text_input("What elements would you like to compare?")
+            prompt_prefix = f"Compare {refined_topic} across these documents"
+        elif refine_option == "Find connections":
+            refined_topic = st.text_input("What kind of connections are you looking for?")
+            prompt_prefix = f"Identify connections related to {refined_topic} between these documents"
+        else:  # Extract data/statistics
+            refined_topic = st.text_input("What kind of data or statistics are you looking for?")
+            prompt_prefix = f"Extract and analyze data about {refined_topic} from these documents"
+
+        if st.button("🔍 Analyze") and refined_topic:
+            refined_prompt = f"{prompt_prefix}:\n"
+            for result in st.session_state.refined_results:
+                refined_prompt += f"\n- {result['title']}"
+            
+            st.session_state.messages.append({"role": "user", "content": refined_prompt})
+            with st.spinner("🧠 Analyzing..."):
+                response = agent(st.session_state.messages)
+            st.session_state.messages.append({"role": "assistant", "content": response["message"]})
+            
+            # Display the response
+            st.markdown("### 📊 Analysis Results")
             st.markdown(response["message"])
 
