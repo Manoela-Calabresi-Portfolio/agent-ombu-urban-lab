@@ -3,48 +3,53 @@ from dotenv import load_dotenv
 from openai import OpenAI
 from agent.tools import TOOLS, save_memory, web_search, invoke_model
 
-
 load_dotenv()
 
 def agent(messages):
-
-    # Initialize the OpenAI client
     client = OpenAI()
-
-    # Make a ChatGPT API call with tool calling
     completion = client.chat.completions.create(
         model="gpt-4o-mini",
-        tools=TOOLS, # here we pass the tools to the LLM
+        tools=TOOLS,
         messages=messages
     )
 
-    # Get the response from the LLM
     response = completion.choices[0].message
 
-    # Parse the response to get the tool call arguments
     if response.tool_calls:
-        # Process each tool call
         for tool_call in response.tool_calls:
-            # Get the tool call arguments
-            tool_call_arguments = json.loads(tool_call.function.arguments)
-            if tool_call.function.name == "save_memory":
-                return save_memory(tool_call_arguments["memory"])
-            elif tool_call.function.name == "web_search":
-                search_results = search_web(tool_call_arguments["query"])
-                messages.append({"role": "assistant", "content": f"Here are the search results: {search_results}"})
-                return invoke_model(messages)
-    else:
-        # If there are no tool calls, return the response content
-        return response.content
-    
-# create a function to help the user to create a hypothesis for a spatial analysis by prompting the user with questions and displays the hypothesis in a bullet point format    
-# the function should be able to handle the user's input and return the hypothesis in a bullet point line by line
-def create_hypothesis(messages):
-    client = OpenAI()
-    completion = client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=messages
-    )
-    return completion.choices[0].message.content
+            tool_name = tool_call.function.name
+            tool_args = json.loads(tool_call.function.arguments)
 
+            if tool_name == "save_memory":
+                return {
+                    "message": save_memory(tool_args["memory"]),
+                    "results": []
+                }
 
+            elif tool_name == "web_search":
+                search_results = web_search(**tool_args)
+
+                if isinstance(search_results, str):
+                    assistant_msg = search_results
+                else:
+                    assistant_msg = (
+                        f"I found {len(search_results)} documents.\n\n"
+                        "📄 Browse them below.\n"
+                        "📌 Save your favorites to your Research Box.\n"
+                        "🔍 Or ask me to search again with a refined topic."
+                    )
+
+                messages.append({
+                    "role": "assistant",
+                    "content": assistant_msg
+                })
+
+                return {
+                    "message": assistant_msg,
+                    "results": search_results if isinstance(search_results, list) else []
+                }
+
+    return {
+        "message": response.content or "The assistant has no response.",
+        "results": []
+    }

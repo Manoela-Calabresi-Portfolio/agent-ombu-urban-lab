@@ -34,7 +34,7 @@ TOOLS = [
             },
         },
     },
-        {
+    {
         "type": "function",
         "function": {
             "name": "web_search",
@@ -42,14 +42,18 @@ TOOLS = [
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "query": {"type": "string", "description": "The search query including topic, city, and timeframe"}
+                    "city": {"type": "string"},
+                    "topic": {"type": "string"},
+                    "timeframe": {"type": "string"},
+                    "doc_type": {"type": "string"},
+                    "num_results": {"type": "integer", "default": 5}
                 },
-                "required": ["query"]
+                "required": ["city", "topic", "timeframe", "doc_type"]
             },
         },
-    },
-
+    }
 ]
+
 
 # Function to get the embeddings of a string
 def get_embeddings(string_to_embed):
