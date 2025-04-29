@@ -5,9 +5,11 @@ from pinecone import Pinecone
 from openai import OpenAI
 from tavily import TavilyClient
 from datetime import datetime, timezone
-
+import requests
 
 load_dotenv()
+
+TAVILY_API_KEY = os.getenv("TAVILY_API_KEY")
 
 # Initialize Pinecone for vector database
 pc = Pinecone(os.getenv("PINECONE_API_KEY"))
@@ -108,8 +110,10 @@ def load_memories(prompt):
         memories
     return memories
 
-def web_search(city, topic, timeframe, num_results=5):
-    query = f"{topic} urban planning report OR government policy study OR academic paper in {city} during {timeframe}"
+def web_search(city, topic, timeframe, doc_type, num_results=5):
+    # Construct a smarter query including the selected document type
+    query = f"{doc_type} about {topic} in {city} during {timeframe}"
+
     url = "https://api.tavily.com/search"
     headers = {"Authorization": f"Bearer {TAVILY_API_KEY}"}
     payload = {"query": query, "num_results": num_results}
@@ -120,6 +124,7 @@ def web_search(city, topic, timeframe, num_results=5):
     else:
         print("Error:", response.text)
         return []
+
     
 def invoke_model(messages):
     # Initialize the OpenAI client

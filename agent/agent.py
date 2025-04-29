@@ -1,7 +1,7 @@
 import json
 from dotenv import load_dotenv
 from openai import OpenAI
-from agent.tools import TOOLS, save_memory, search_web, invoke_model
+from agent.tools import TOOLS, save_memory, web_search, invoke_model
 
 
 load_dotenv()
@@ -36,3 +36,15 @@ def agent(messages):
     else:
         # If there are no tool calls, return the response content
         return response.content
+    
+# create a function to help the user to create a hypothesis for a spatial analysis by prompting the user with questions and displays the hypothesis in a bullet point format    
+# the function should be able to handle the user's input and return the hypothesis in a bullet point line by line
+def create_hypothesis(messages):
+    client = OpenAI()
+    completion = client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=messages
+    )
+    return completion.choices[0].message.content
+
+
