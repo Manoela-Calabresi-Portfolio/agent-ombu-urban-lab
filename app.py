@@ -9,6 +9,7 @@ from streamlit_folium import folium_static
 from geopy.geocoders import Nominatim
 from geopy.exc import GeocoderTimedOut
 from agent.agent import agent
+import re
 
 # Load environment variables
 load_dotenv()
@@ -44,6 +45,8 @@ if "mode" not in st.session_state:
     st.session_state.mode = "search"  # options: search | curate | explore | hypothesis
 if "selected_results" not in st.session_state:
     st.session_state.selected_results = []
+if "refined_results" not in st.session_state:
+    st.session_state.refined_results = []
 
 
 # Stage: Initial input form
@@ -134,26 +137,59 @@ if st.session_state.stage == "initial":
 elif st.session_state.stage == "chat":
     st.subheader("💬 Research Assistant")
 
-    if st.session_state.mode == "curate":
-        st.markdown("### 📄 Search Results")
-
-        for idx, result in enumerate(st.session_state.results, 1):
-            with st.expander(f"{idx}. {result['title']}"):
-                st.write(result["content"][:300] + "...")
-                st.markdown(f"[🔗 View source]({result['url']})")
-
-                if st.button(f"📌 Add to My Box", key=f"add_{idx}"):
-                    if result not in st.session_state.selected_results:
-                        st.session_state.selected_results.append(result)
-                        st.success("✅ Added to your Research Box")
-                    else:
-                        st.info("Already in your box.")
-
-    # Display chat messages
-    for message in st.session_state.messages[1:]:  # Start from index 1 to skip system message
+    # Display chat history first (assistant + user)
+    for message in st.session_state.messages[1:]:  # Skip system message
         with st.chat_message(message["role"]):
             st.markdown(message["content"])
 
+    # Then show search previews (in "curate" mode only)
+    if st.session_state.mode == "curate" and st.session_state.results:
+        st.markdown("### 📄 Browse Results")
+
+        for idx, result in enumerate(st.session_state.results, 1):
+            # Extract year from content
+            year_pattern = r'20[0-2]\d|19\d{2}'  # Matches years from 1900-2029
+            content_years = re.findall(year_pattern, result.get('content', ''))
+            # Use the first year found or empty string if none found
+            year = content_years[0] if content_years else ""
+            
+            # Use URL as fallback if title is just "pdf"
+            display_title = result['title'] if result['title'].lower() != "pdf" else result['url'].split('/')[-1]
+            if year:
+                display_title = f"{display_title} ({year})"
+
+            # Create columns for the result and buttons
+            col1, col2, col3 = st.columns([0.8, 0.1, 0.1])
+            
+            with col1:
+                with st.expander(f"{idx}. {display_title}"):
+                    st.write(result["content"][:300] + "...")
+                    st.markdown(f"[🔗 View source]({result['url']})")
+            
+            # Container for success messages
+            msg_container = st.container()
+            
+            with col2:
+                if st.button(f"📌", key=f"add_{idx}", help="Add to My Box"):
+                    if result not in st.session_state.selected_results:
+                        st.session_state.selected_results.append(result)
+                        with msg_container:
+                            st.success("Added to your Research Box", icon="✅")
+                    else:
+                        with msg_container:
+                            st.info("Already in your box.", icon="ℹ️")
+            
+            with col3:
+                if st.button(f"🔍", key=f"refine_{idx}", help="Select for refined topic"):
+                    if result not in st.session_state.refined_results:
+                        st.session_state.refined_results.append(result)
+                        with msg_container:
+                            st.success("Selected for refined topic", icon="✅")
+                    else:
+                        with msg_container:
+                            st.info("Already selected for refinement", icon="ℹ️")
+
+    # Input field
     if prompt := st.chat_input("Ask me anything about the research..."):
         st.session_state.messages.append({"role": "user", "content": prompt})
         with st.chat_message("user"):
@@ -164,5 +200,7 @@ elif st.session_state.stage == "chat":
 
         st.session_state.results = response.get("results", st.session_state.results)
         st.session_state.messages.append({"role": "assistant", "content": response["message"]})
+
         with st.chat_message("assistant"):
             st.markdown(response["message"])
+
