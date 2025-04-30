@@ -2,6 +2,7 @@ import json
 from dotenv import load_dotenv
 from openai import OpenAI
 from agent.tools import TOOLS, save_memory, web_search, invoke_model
+import streamlit as st
 
 load_dotenv()
 
@@ -32,12 +33,18 @@ def agent(messages):
                 if isinstance(search_results, str):
                     assistant_msg = search_results
                 else:
-                    assistant_msg = (
-                        f"I found {len(search_results)} documents.\n\n"
-                        "📄 Browse them below.\n"
-                        "📌 Save your favorites to your Research Box.\n"
-                        "🔍 Or ask me to search again with a refined topic."
-                    )
+                    # Check if mode exists in session state, default to "search" if not
+                    mode = getattr(st.session_state, "mode", "search")
+                    if mode == "refine_search":
+                        assistant_msg = f"Here's what I found based on your refinement:\n\n"
+                        assistant_msg += "\n".join(f"- {r['title']} ({r['url']})" for r in search_results)
+                    else:
+                        assistant_msg = (
+                            f"I found {len(search_results)} documents.\n\n"
+                            "📄 Browse them below.\n"
+                            "📌 Save your favorites to your Research Box.\n"
+                            "🔍 Or ask me to search again with a refined topic."
+                        )
 
                 messages.append({
                     "role": "assistant",
@@ -49,7 +56,8 @@ def agent(messages):
                     "results": search_results if isinstance(search_results, list) else []
                 }
 
+    # ✅ FIX: fallback in case response.content is None
     return {
-        "message": response.content or "The assistant has no response.",
+        "message": response.content if response.content else str(response),
         "results": []
     }
