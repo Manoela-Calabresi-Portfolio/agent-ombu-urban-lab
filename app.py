@@ -52,6 +52,8 @@ if "refined_search_results" not in st.session_state:
     st.session_state.refined_search_results = []
 if "just_analyzed" not in st.session_state:
     st.session_state.just_analyzed = False
+if "selected_for_refinement" not in st.session_state or not isinstance(st.session_state.selected_for_refinement, dict):
+    st.session_state.selected_for_refinement = {}
 
 
 # Stage: Initial input form
@@ -253,6 +255,11 @@ elif st.session_state.stage == "refine_search":
     
     # Show documents first
     st.markdown("#### Let me help you refine your search 🔍 here are you selected documents:")
+    
+    # Ensure selected_for_refinement is a dictionary
+    if not isinstance(st.session_state.selected_for_refinement, dict):
+        st.session_state.selected_for_refinement = {}
+    
     for idx, result in enumerate(st.session_state.refined_results, 1):
         display_title = format_result_title(result)
         
@@ -265,33 +272,38 @@ elif st.session_state.stage == "refine_search":
                 st.markdown(f"[🔗 View source]({result['url']})")
         
         with col2:
-            is_in_box = result in st.session_state.selected_results
+            is_in_box = any(r["url"] == result["url"] for r in st.session_state.selected_results)
             if st.button("📌", key=f"add_selected_{idx}", help="I want to send this to my research box"):
                 if not is_in_box:
                     st.session_state.selected_results.append(result)
                 else:
-                    st.session_state.selected_results.remove(result)
+                    st.session_state.selected_results = [r for r in st.session_state.selected_results if r["url"] != result["url"]]
                 st.rerun()
         
         with col3:
-            is_in_refinement = result in st.session_state.refined_results
-            if st.button("✅", key=f"refine_selected_{idx}", help="I want to select this one for the refinement"):
-                if not is_in_refinement:
-                    st.session_state.refined_results.append(result)
+            is_selected = result["url"] in st.session_state.selected_for_refinement
+            button_icon = "✅" if is_selected else "⏹️"
+            if st.button(button_icon, key=f"refine_selected_{idx}", help="Select this document for refinement"):
+                if not is_selected:
+                    st.session_state.selected_for_refinement[result["url"]] = result
                 else:
-                    st.session_state.refined_results.remove(result)
+                    del st.session_state.selected_for_refinement[result["url"]]
                 st.rerun()
 
         with col4:
-            if st.button("🗑️", key=f"delete_selected_{idx}", help="Delete this result"):
-                if result in st.session_state.refined_results:
-                    st.session_state.refined_results.remove(result)
-                if result in st.session_state.selected_results:
-                    st.session_state.selected_results.remove(result)
+            if st.button("🗑️", key=f"delete_selected_{idx}", help="Remove this document from the list"):
+                st.session_state.refined_results = [r for r in st.session_state.refined_results if r["url"] != result["url"]]
+                st.session_state.selected_results = [r for r in st.session_state.selected_results if r["url"] != result["url"]]
+                if result["url"] in st.session_state.selected_for_refinement:
+                    del st.session_state.selected_for_refinement[result["url"]]
                 st.rerun()
 
     # Add a divider between documents and refinement options
     st.divider()
+    
+    # Show count of selected documents for refinement
+    if st.session_state.selected_for_refinement:
+        st.write(f"Selected {len(st.session_state.selected_for_refinement)} documents for refinement")
     
     # Then show refinement options
     st.markdown("### What would you like to know about these documents?")
