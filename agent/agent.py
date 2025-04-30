@@ -1,17 +1,25 @@
 import json
+import streamlit as st
 from dotenv import load_dotenv
 from openai import OpenAI
-from agent.tools import TOOLS, save_memory, web_search, invoke_model
-import streamlit as st
+from agent.tools import TOOLS, save_memory, web_search
+from agent.prompts import get_system_prompt
 
 load_dotenv()
 
 def agent(messages):
     client = OpenAI()
+
+    # Inject dynamic system prompt before calling the model
+    mode = st.session_state.get("mode", "search")
+    user_prompt = next((m["content"] for m in reversed(messages) if m["role"] == "user"), "")
+    system_prompt = get_system_prompt(user_prompt, mode)
+    full_messages = [{"role": "system", "content": system_prompt}] + messages
+
     completion = client.chat.completions.create(
         model="gpt-4o-mini",
         tools=TOOLS,
-        messages=messages
+        messages=full_messages
     )
 
     response = completion.choices[0].message
@@ -33,9 +41,8 @@ def agent(messages):
                 if isinstance(search_results, str):
                     assistant_msg = search_results
                 else:
-                    # Check if mode exists in session state, default to "search" if not
                     mode = getattr(st.session_state, "mode", "search")
-                    if mode == "refine_search":
+                    if mode == "refine":
                         assistant_msg = f"Here's what I found based on your refinement:\n\n"
                         assistant_msg += "\n".join(f"- {r['title']} ({r['url']})" for r in search_results)
                     else:
@@ -56,7 +63,6 @@ def agent(messages):
                     "results": search_results if isinstance(search_results, list) else []
                 }
 
-    # ✅ FIX: fallback in case response.content is None
     return {
         "message": response.content if response.content else str(response),
         "results": []

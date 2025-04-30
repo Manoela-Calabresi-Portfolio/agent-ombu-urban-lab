@@ -9,6 +9,7 @@ from streamlit_folium import folium_static
 from geopy.geocoders import Nominatim
 from geopy.exc import GeocoderTimedOut
 from agent.agent import agent
+from agent.tools import format_result_title
 import re
 
 # Load environment variables
@@ -42,7 +43,7 @@ if "selected_location" not in st.session_state:
 if "messages" not in st.session_state:
     st.session_state.messages = []
 if "mode" not in st.session_state:
-    st.session_state.mode = "search"  # options: search | curate | explore | hypothesis
+    st.session_state.mode = "search"  # options: search | refine | hypothesis
 if "selected_results" not in st.session_state:
     st.session_state.selected_results = []
 if "refined_results" not in st.session_state:
@@ -134,7 +135,7 @@ if st.session_state.stage == "initial":
             st.session_state.results = response_obj.get("results", [])
             st.session_state.messages.append({"role": "assistant", "content": response_obj["message"]})
             st.session_state.stage = "chat"
-            st.session_state.mode = "curate"
+            st.session_state.mode = "refine"
             st.rerun()
 
 # Stage: Chat
@@ -143,17 +144,8 @@ elif st.session_state.stage == "chat":
 
     # Display search results first
     for idx, result in enumerate(st.session_state.results, 1):
-        # Extract year from content
-        year_pattern = r'20[0-2]\d|19\d{2}'  # Matches years from 1900-2029
-        content_years = re.findall(year_pattern, result.get('content', ''))
-        # Use the first year found or empty string if none found
-        year = content_years[0] if content_years else ""
+        display_title = format_result_title(result)
         
-        # Use URL as fallback if title is just "pdf"
-        display_title = result['title'] if result['title'].lower() != "pdf" else result['url'].split('/')[-1]
-        if year:
-            display_title = f"{display_title} ({year})"
-
         # Create columns for the result and buttons
         col1, col2, col3 = st.columns([0.8, 0.1, 0.1])
         
@@ -178,7 +170,6 @@ elif st.session_state.stage == "chat":
                 if not is_in_refinement:
                     st.session_state.refined_results.append(result)
                 st.rerun()
-
 
     # Show navigation options after results
     st.divider()
@@ -215,6 +206,7 @@ elif st.session_state.stage == "chat":
             
             if st.button("🕵🏻‍♀️ Start Refinement", use_container_width=True, type="primary"):
                 st.session_state.stage = "refine_search"
+                st.session_state.mode = "refine"
                 st.rerun()
         else:
             st.info("No items selected yet")
@@ -242,7 +234,9 @@ elif st.session_state.stage == "research_box":
         st.rerun()
     
     for idx, result in enumerate(st.session_state.selected_results, 1):
-        with st.expander(f"{idx}. {result['title']}"):
+        display_title = format_result_title(result)
+        
+        with st.expander(f"{idx}. {display_title}"):
             st.write(result["content"][:300] + "...")
             st.markdown(f"[🔗 View source]({result['url']})")
 
@@ -260,10 +254,42 @@ elif st.session_state.stage == "refine_search":
     # Show documents first
     st.markdown("#### Let me help you refine your search 🔍 here are you selected documents:")
     for idx, result in enumerate(st.session_state.refined_results, 1):
-        with st.expander(f"{idx}. {result['title']}"):
-            st.write(result["content"][:300] + "...")
-            st.markdown(f"[🔗 View source]({result['url']})")
-    
+        display_title = format_result_title(result)
+        
+        # Create columns for the result and buttons
+        col1, col2, col3, col4 = st.columns([0.7, 0.1, 0.1, 0.1])
+        
+        with col1:
+            with st.expander(f"{idx}. {display_title}"):
+                st.write(result["content"][:300] + "...")
+                st.markdown(f"[🔗 View source]({result['url']})")
+        
+        with col2:
+            is_in_box = result in st.session_state.selected_results
+            if st.button("📌", key=f"add_selected_{idx}", help="I want to send this to my research box"):
+                if not is_in_box:
+                    st.session_state.selected_results.append(result)
+                else:
+                    st.session_state.selected_results.remove(result)
+                st.rerun()
+        
+        with col3:
+            is_in_refinement = result in st.session_state.refined_results
+            if st.button("✅", key=f"refine_selected_{idx}", help="I want to select this one for the refinement"):
+                if not is_in_refinement:
+                    st.session_state.refined_results.append(result)
+                else:
+                    st.session_state.refined_results.remove(result)
+                st.rerun()
+
+        with col4:
+            if st.button("🗑️", key=f"delete_selected_{idx}", help="Delete this result"):
+                if result in st.session_state.refined_results:
+                    st.session_state.refined_results.remove(result)
+                if result in st.session_state.selected_results:
+                    st.session_state.selected_results.remove(result)
+                st.rerun()
+
     # Add a divider between documents and refinement options
     st.divider()
     
@@ -339,82 +365,67 @@ elif st.session_state.stage == "refine_search":
 
         if analyze_button and refined_topic:
             st.session_state.just_analyzed = True
+            st.session_state.mode = "refine"
 
+            # Construct a more specific prompt for multi-city comparison
             refined_prompt = f"{prompt_prefix}:\n"
+            refined_prompt += "\nSelected documents for reference:\n"
             for result in st.session_state.refined_results:
                 refined_prompt += f"\n- {result['title']}"
-
+            
+            # Add explicit instruction for multi-city search
+            refined_prompt += "\n\nIMPORTANT: Please search for comparative studies and examples from multiple different European cities. Do not limit results to a single city."
+            
             st.session_state.messages.append({"role": "user", "content": refined_prompt})
 
             with st.spinner("🧠 Analyzing..."):
                 response = agent(st.session_state.messages)
                 if response.get("results"):
+                    # Store all results, not just the first one
                     st.session_state.refined_search_results = response["results"]
-                st.session_state.messages.append({"role": "assistant", "content": response["message"]})
+                    st.session_state.messages.append({"role": "assistant", "content": response["message"]})
 
-        # ✅ Always show refined results if available
-        if st.session_state.refined_search_results:
-            st.markdown("### 🔍 Refined Search Results")
-            for idx, result in enumerate(st.session_state.refined_search_results, 1):
-                # Extract year from content
-                year_pattern = r'20[0-2]\d|19\d{2}'  # Matches years from 1900-2029
-                content_years = re.findall(year_pattern, result.get('content', ''))
-                # Use the first year found or empty string if none found
-                year = content_years[0] if content_years else ""
-                
-                # Use URL as fallback if title is just "pdf"
-                display_title = result['title'] if result['title'].lower() != "pdf" else result['url'].split('/')[-1]
-                if year:
-                    display_title = f"{display_title} ({year})"
+            # Show refined results only after analysis
+            if st.session_state.refined_search_results:
+                st.markdown("### 🔍 Refined Search Results")
+                for idx, result in enumerate(st.session_state.refined_search_results, 1):
+                    display_title = format_result_title(result)
+                    
+                    # Create columns for the result and buttons
+                    col1, col2, col3, col4 = st.columns([0.7, 0.1, 0.1, 0.1])
+                    
+                    with col1:
+                        with st.expander(f"{idx}. {display_title}"):
+                            st.write(result["content"][:300] + "...")
+                            st.markdown(f"[🔗 View source]({result['url']})")
+                    
+                    with col2:
+                        is_in_box = result in st.session_state.selected_results
+                        if st.button("📌", key=f"add_refined_{idx}", help="I want to send this to my research box"):
+                            if not is_in_box:
+                                st.session_state.selected_results.append(result)
+                            else:
+                                st.session_state.selected_results.remove(result)
+                            st.rerun()
+                    
+                    with col3:
+                        is_in_refinement = result in st.session_state.refined_results
+                        if st.button("✅", key=f"refine_refined_{idx}", help="I want to select this one for the refinement"):
+                            if not is_in_refinement:
+                                st.session_state.refined_results.append(result)
+                            else:
+                                st.session_state.refined_results.remove(result)
+                            st.rerun()
 
-                # Create columns for the result and buttons
-                col1, col2, col3 = st.columns([0.8, 0.1, 0.1])
-                
-                with col1:
-                    with st.expander(f"{idx}. {display_title}"):
-                        st.write(result["content"][:300] + "...")
-                        st.markdown(f"[🔗 View source]({result['url']})")
-                
-                with col2:
-                    # Check if result is already in research box
-                    is_in_box = result in st.session_state.selected_results
-                    button_label = "📌" if not is_in_box else "✅"
-                    if st.button(button_label, key=f"add_refined_{idx}", help="Add to My Box"):
-                        if not is_in_box:
-                            st.session_state.selected_results.append(result)
-                        else:
-                            st.session_state.selected_results.remove(result)
-                        st.rerun()
-                
-                with col3:
-                    # Check if result is already in refinement list
-                    is_in_refinement = result in st.session_state.refined_results
-                    refine_label = "🔍" if not is_in_refinement else "✅"
-                    if st.button(refine_label, key=f"refine_refined_{idx}", help="Select for refined topic"):
-                        if not is_in_refinement:
-                            st.session_state.refined_results.append(result)
-                        else:
-                            st.session_state.refined_results.remove(result)
-                        st.rerun()
-
-            # Show current selections summary
-            st.divider()
-            sum_col1, sum_col2 = st.columns(2)
-            with sum_col1:
-                st.write(f"📚 Research Box: {len(st.session_state.selected_results)} items")
-            with sum_col2:
-                st.write(f"🔍 Selected for refinement: {len(st.session_state.refined_results)} items")
-
-            # Show navigation options after results
-            nav_col1, nav_col2 = st.columns(2)
-            with nav_col1:
-                if st.button("📚 Go to Research Box", use_container_width=True):
-                    st.session_state.stage = "research_box"
-                    st.rerun()
-            with nav_col2:
-                if st.button("🔍 Refine These Results", use_container_width=True):
-                    # Keep the current results for further refinement
-                    st.rerun()
+                    with col4:
+                        if st.button("🗑️", key=f"delete_refined_{idx}", help="Delete this result"):
+                            if result in st.session_state.refined_search_results:
+                                st.session_state.refined_search_results.remove(result)
+                            if result in st.session_state.selected_results:
+                                st.session_state.selected_results.remove(result)
+                            if result in st.session_state.refined_results:
+                                st.session_state.refined_results.remove(result)
+                            st.rerun()
 
 
 
