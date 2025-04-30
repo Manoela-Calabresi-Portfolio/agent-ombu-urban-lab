@@ -184,51 +184,10 @@ elif st.session_state.stage == "chat":
     # Show navigation options after results
     st.divider()
 
-    # Custom CSS for magical boxes and buttons
-    st.markdown("""
-    <style>
-        .magical-box {
-            background-color: #f8f9fa;
-            border: 2px solid #e9ecef;
-            border-radius: 10px;
-            padding: 15px;
-            margin: 10px 0;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            transition: all 0.3s ease;
-            height: 160px;  /* Fixed height for both boxes */
-            position: relative;  /* For button positioning */
-        }
-        .magical-box:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
-        }
-        .box-title {
-            font-size: 1.2em;
-            font-weight: bold;
-            margin-bottom: 10px;
-            color: #1f1f1f;
-        }
-        .box-content {
-            color: #666;
-            font-size: 1em;
-        }
-        .button-container {
-            position: absolute;
-            bottom: 15px;
-            left: 15px;
-            right: 15px;
-        }
-    </style>
-    """, unsafe_allow_html=True)
-
     col_box, col_refine = st.columns(2)
     
     with col_box:
-        st.markdown("""
-        <div class="magical-box">
-            <div class="box-title">📚 Research Box</div>
-        """, unsafe_allow_html=True)
-        
+        st.markdown("### 📚 Research Box")
         if st.session_state.selected_results:
             col_count, col_clear = st.columns([0.7, 0.3])
             with col_count:
@@ -238,22 +197,14 @@ elif st.session_state.stage == "chat":
                     st.session_state.selected_results = []
                     st.rerun()
             
-            st.markdown('<div class="button-container">', unsafe_allow_html=True)
-            if st.button("✨ Open Research Box", use_container_width=True):
+            if st.button("✨ Open Research Box", use_container_width=True, type="primary"):
                 st.session_state.stage = "research_box"
                 st.rerun()
-            st.markdown('</div>', unsafe_allow_html=True)
         else:
-            st.markdown('<div class="box-content">No items selected yet</div>', unsafe_allow_html=True)
-        
-        st.markdown("</div>", unsafe_allow_html=True)
+            st.info("No items selected yet")
     
     with col_refine:
-        st.markdown("""
-        <div class="magical-box">
-            <div class="box-title">🔍 For Refinement</div>
-        """, unsafe_allow_html=True)
-        
+        st.markdown("### 🔍 For Refinement")
         if st.session_state.refined_results:
             col_count, col_clear = st.columns([0.7, 0.3])
             with col_count:
@@ -263,15 +214,11 @@ elif st.session_state.stage == "chat":
                     st.session_state.refined_results = []
                     st.rerun()
             
-            st.markdown('<div class="button-container">', unsafe_allow_html=True)
-            if st.button("🕵🏻‍♀️ Start Refinement", use_container_width=True):
+            if st.button("🕵🏻‍♀️ Start Refinement", use_container_width=True, type="primary"):
                 st.session_state.stage = "refine_search"
                 st.rerun()
-            st.markdown('</div>', unsafe_allow_html=True)
         else:
-            st.markdown('<div class="box-content">No items selected yet</div>', unsafe_allow_html=True)
-        
-        st.markdown("</div>", unsafe_allow_html=True)
+            st.info("No items selected yet")
 
     # Input field
     if prompt := st.chat_input("Ask me anything about the research..."):
@@ -290,7 +237,7 @@ elif st.session_state.stage == "chat":
 
 # Add new stages
 elif st.session_state.stage == "research_box":
-    st.subheader("📚 My Research Box")
+    st.subheader("My Research Box")
     if st.button("← Back to Results"):
         st.session_state.stage = "chat"
         st.rerun()
@@ -301,20 +248,18 @@ elif st.session_state.stage == "research_box":
             st.markdown(f"[🔗 View source]({result['url']})")
 
 elif st.session_state.stage == "refine_search":
-    st.subheader("🔍 Refine Search")
-    
     # Navigation options
     col1, col2 = st.columns([0.2, 0.8])
     with col1:
         if st.button("← Back to Results"):
             st.session_state.stage = "chat"
             st.rerun()
-        if st.button("📚 Go to Box"):
+        if st.button("✨ Go to my research box"):
             st.session_state.stage = "research_box"
             st.rerun()
     
     # Show documents first
-    st.markdown("### 📄 Selected Documents")
+    st.markdown("#### Let me help you refine your search 🔍 here are you selected documents:")
     for idx, result in enumerate(st.session_state.refined_results, 1):
         with st.expander(f"{idx}. {result['title']}"):
             st.write(result["content"][:300] + "...")
@@ -324,7 +269,7 @@ elif st.session_state.stage == "refine_search":
     st.divider()
     
     # Then show refinement options
-    st.markdown("### 🎯 What would you like to know about these documents?")
+    st.markdown("### What would you like to know about these documents?")
     st.write("Choose an analysis approach and keep refining until you're ready to move to your Research Box.")
     
     # Refinement options in columns for better layout
@@ -336,7 +281,13 @@ elif st.session_state.stage == "refine_search":
             ["Focus on a specific aspect", 
              "Compare specific elements", 
              "Find connections", 
-             "Extract data/statistics"]
+             "Extract data/statistics",
+             "Look for data sources"
+             "Look for similar studies",
+             "Look for trends",
+             "Look for case studies",
+             "Other"
+             ]
         )
     
     with col_right:
@@ -349,21 +300,49 @@ elif st.session_state.stage == "refine_search":
         elif refine_option == "Find connections":
             refined_topic = st.text_input("What kind of connections are you looking for?")
             prompt_prefix = f"Identify connections related to {refined_topic} between these documents"
-        else:  # Extract data/statistics
+        elif refine_option == "Extract data/statistics":
             refined_topic = st.text_input("What kind of data or statistics are you looking for?")
             prompt_prefix = f"Extract and analyze data about {refined_topic} from these documents"
-
+        elif refine_option == "Look for data sources":
+            refined_topic = st.text_input("What type of data sources are you interested in?")
+            prompt_prefix = f"Find data sources related to {refined_topic} in these documents"
+        elif refine_option == "Look for similar studies":
+            refined_topic = st.text_input("What aspects of these studies would you like to compare?")
+            prompt_prefix = f"Find similar studies focusing on {refined_topic}"
+        elif refine_option == "Look for trends":
+            refined_topic = st.text_input("What type of trends are you looking for?")
+            prompt_prefix = f"Identify trends related to {refined_topic} in these documents"
+        elif refine_option == "Look for case studies":
+            refined_topic = st.text_input("What type of case studies are you interested in?")
+            prompt_prefix = f"Find case studies related to {refined_topic}"
+        else:  # Other
+            refined_topic = st.text_input("What would you like to explore?")
+            prompt_prefix = f"Explore {refined_topic} in these documents"
+        
         if st.button("🔍 Analyze") and refined_topic:
             refined_prompt = f"{prompt_prefix}:\n"
             for result in st.session_state.refined_results:
                 refined_prompt += f"\n- {result['title']}"
-            
+
             st.session_state.messages.append({"role": "user", "content": refined_prompt})
+
             with st.spinner("🧠 Analyzing..."):
                 response = agent(st.session_state.messages)
-            st.session_state.messages.append({"role": "assistant", "content": response["message"]})
-            
-            # Display the response
-            st.markdown("### 📊 Analysis Results")
-            st.markdown(response["message"])
+
+            # Don't add it again if we're showing it in the expander
+            refined_message = response["message"]
+            st.session_state.results = response.get("results", st.session_state.results)
+
+            # 🔽 Show the assistant's response in a nice expandable box
+            with st.expander("Click to view analysis results"):
+                st.markdown(response["message"])
+
+            # ✅ Display the response only if it exists
+            if refined_message.strip():
+                st.markdown("### Analysis Results")
+                st.markdown(refined_message)
+            else:
+                st.info("No insights were generated from this query.")
+
+
 
