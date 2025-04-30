@@ -6,6 +6,8 @@ from openai import OpenAI
 from tavily import TavilyClient
 from datetime import datetime, timezone
 import requests
+import json
+import re
 
 load_dotenv()
 
@@ -141,6 +143,35 @@ def invoke_model(messages):
     )
 
     return completion.choices[0].message.content
+
+def format_result_title(result):
+    # Extract year from content - look for publication year patterns
+    year_pattern = r'(?:published|released|publication date|date of publication|year)[:\s]+(?:19|20)\d{2}|(?:19|20)\d{2}'
+    content_years = re.findall(year_pattern, result.get('content', ''), re.IGNORECASE)
+    # Use the first year found or empty string if none found
+    year = content_years[0] if content_years else ""
+    
+    # Extract city name - look in the full content
+    # Common city names pattern
+    city_pattern = r'\b(?:Paris|Bogota|Curitiba|Mexico City|Tokyo|Sydney|Canberra|Orlando|Seattle|New York|Santiago|Lima|London|Berlin|Madrid|Rome|Amsterdam|Barcelona|Vienna|Copenhagen|Stockholm|Munich|Hamburg|Milan|Brussels|Prague|Warsaw|Budapest|Dublin|Lisbon|Helsinki|Oslo|Athens|Rotterdam|Valencia|Frankfurt|Seville|Glasgow|Manchester|Birmingham|Lyon|Turin|Naples|Marseille|Leeds|Krakow|Porto|Riga|Vilnius|Tallinn|Sofia|Bucharest|Zagreb|Ljubljana|Bratislava)\b'
+    
+    # Look for cities in the full content
+    cities = re.findall(city_pattern, result.get('content', ''), re.IGNORECASE)
+    # Get the first city found
+    city = cities[0].title() if cities else ""
+    
+    # Get the base title
+    base_title = result['title'] if result['title'].lower() != "pdf" else result['url'].split('/')[-1]
+    
+    # Format the title
+    if city and year:
+        return f"{city} ({year}): {base_title}"
+    elif city:
+        return f"{city}: {base_title}"
+    elif year:
+        return f"({year}): {base_title}"
+    else:
+        return base_title
 
 # create a function to help the user to create a hypothesis for a spatial analysis by prompting the user with questions and display the hypothesis in a bullet point format 
 def create_hypothesis(messages):
