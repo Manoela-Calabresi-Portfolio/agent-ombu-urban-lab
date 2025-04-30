@@ -47,6 +47,10 @@ if "selected_results" not in st.session_state:
     st.session_state.selected_results = []
 if "refined_results" not in st.session_state:
     st.session_state.refined_results = []
+if "refined_search_results" not in st.session_state:
+    st.session_state.refined_search_results = []
+if "just_analyzed" not in st.session_state:
+    st.session_state.just_analyzed = False
 
 
 # Stage: Initial input form
@@ -162,24 +166,19 @@ elif st.session_state.stage == "chat":
         msg_container = st.container()
         
         with col2:
-            if st.button(f"📌", key=f"add_{idx}", help="Add to My Box"):
-                if result not in st.session_state.selected_results:
+            is_in_box = result in st.session_state.selected_results
+            if st.button("📌", key=f"add_refined_{idx}", help="Add to My Box"):
+                if not is_in_box:
                     st.session_state.selected_results.append(result)
-                    with msg_container:
-                        st.success("Added to your Research Box", icon="✅")
-                else:
-                    with msg_container:
-                        st.info("Already in your box.", icon="ℹ️")
+                st.rerun()
         
         with col3:
-            if st.button(f"🔍", key=f"refine_{idx}", help="Select for refined topic"):
-                if result not in st.session_state.refined_results:
+            is_in_refinement = result in st.session_state.refined_results
+            if st.button("🔍", key=f"refine_refined_{idx}", help="Select for refined topic"):
+                if not is_in_refinement:
                     st.session_state.refined_results.append(result)
-                    with msg_container:
-                        st.success("Selected for refined topic", icon="✅")
-                else:
-                    with msg_container:
-                        st.info("Already selected for refinement", icon="ℹ️")
+                st.rerun()
+
 
     # Show navigation options after results
     st.divider()
@@ -272,54 +271,75 @@ elif st.session_state.stage == "refine_search":
     st.markdown("### What would you like to know about these documents?")
     st.write("Choose an analysis approach and keep refining until you're ready to move to your Research Box.")
     
-    # Refinement options in columns for better layout
-    col_left, col_right = st.columns(2)
-    
-    with col_left:
-        refine_option = st.radio(
-            "Analysis approach:",
-            ["Focus on a specific aspect", 
-             "Compare specific elements", 
-             "Find connections", 
-             "Extract data/statistics",
-             "Look for data sources"
-             "Look for similar studies",
-             "Look for trends",
-             "Look for case studies",
-             "Other"
-             ]
-        )
-    
-    with col_right:
-        if refine_option == "Focus on a specific aspect":
-            refined_topic = st.text_input("What specific aspect would you like to focus on?")
-            prompt_prefix = f"Focus on {refined_topic} within these documents"
-        elif refine_option == "Compare specific elements":
-            refined_topic = st.text_input("What elements would you like to compare?")
-            prompt_prefix = f"Compare {refined_topic} across these documents"
-        elif refine_option == "Find connections":
-            refined_topic = st.text_input("What kind of connections are you looking for?")
-            prompt_prefix = f"Identify connections related to {refined_topic} between these documents"
-        elif refine_option == "Extract data/statistics":
-            refined_topic = st.text_input("What kind of data or statistics are you looking for?")
-            prompt_prefix = f"Extract and analyze data about {refined_topic} from these documents"
-        elif refine_option == "Look for data sources":
-            refined_topic = st.text_input("What type of data sources are you interested in?")
-            prompt_prefix = f"Find data sources related to {refined_topic} in these documents"
-        elif refine_option == "Look for similar studies":
-            refined_topic = st.text_input("What aspects of these studies would you like to compare?")
-            prompt_prefix = f"Find similar studies focusing on {refined_topic}"
-        elif refine_option == "Look for trends":
-            refined_topic = st.text_input("What type of trends are you looking for?")
-            prompt_prefix = f"Identify trends related to {refined_topic} in these documents"
-        elif refine_option == "Look for case studies":
-            refined_topic = st.text_input("What type of case studies are you interested in?")
-            prompt_prefix = f"Find case studies related to {refined_topic}"
-        else:  # Other
-            refined_topic = st.text_input("What would you like to explore?")
-            prompt_prefix = f"Explore {refined_topic} in these documents"
+    # Create a centered container with custom CSS
+    st.markdown("""
+        <style>
+        .centered-container {
+            max-width: 800px;
+            margin: auto;
+            padding: 1rem;
+        }
+        </style>
+    """, unsafe_allow_html=True)
+
+    with st.container():
+        st.markdown('<div class="centered-container">', unsafe_allow_html=True)
         
-        if st.button("🔍 Analyze") and refined_topic:
+        # Two equal columns for options and input
+        col_left, col_right = st.columns(2)
+        
+        with col_left:
+            refine_option = st.radio(
+                "Analysis approach:",
+                [
+                    "Focus on a specific aspect",
+                    "Compare specific elements",
+                    "Find connections",
+                    "Extract data/statistics",
+                    "Look for data sources",
+                    "Look for similar studies",
+                    "Look for trends",
+                    "Look for case studies",
+                    "Other"
+                ]
+            )
+        
+        with col_right:
+            if refine_option == "Focus on a specific aspect":
+                refined_topic = st.text_input("What specific aspect would you like to focus on?")
+                prompt_prefix = f"Focus on {refined_topic} within these documents"
+            elif refine_option == "Compare specific elements":
+                refined_topic = st.text_input("What elements would you like to compare?")
+                prompt_prefix = f"Compare {refined_topic} across these documents"
+            elif refine_option == "Find connections":
+                refined_topic = st.text_input("What kind of connections are you looking for?")
+                prompt_prefix = f"Identify connections related to {refined_topic} between these documents"
+            elif refine_option == "Extract data/statistics":
+                refined_topic = st.text_input("What kind of data or statistics are you looking for?")
+                prompt_prefix = f"Extract and analyze data about {refined_topic} from these documents"
+            elif refine_option == "Look for data sources":
+                refined_topic = st.text_input("What type of data sources are you interested in?")
+                prompt_prefix = f"Find data sources related to {refined_topic} in these documents"
+            elif refine_option == "Look for similar studies":
+                refined_topic = st.text_input("What aspects of these studies would you like to compare?")
+                prompt_prefix = f"Find similar studies focusing on {refined_topic}"
+            elif refine_option == "Look for trends":
+                refined_topic = st.text_input("What type of trends are you looking for?")
+                prompt_prefix = f"Identify trends related to {refined_topic} in these documents"
+            elif refine_option == "Look for case studies":
+                refined_topic = st.text_input("What type of case studies are you interested in?")
+                prompt_prefix = f"Find case studies related to {refined_topic}"
+            else:  # Other
+                refined_topic = st.text_input("What would you like to explore?")
+                prompt_prefix = f"Explore {refined_topic} in these documents"
+
+            analyze_button = st.button("🔍 Analyze", use_container_width=True)
+
+        st.markdown('</div>', unsafe_allow_html=True)
+
+        if analyze_button and refined_topic:
+            st.session_state.just_analyzed = True
+
             refined_prompt = f"{prompt_prefix}:\n"
             for result in st.session_state.refined_results:
                 refined_prompt += f"\n- {result['title']}"
@@ -328,21 +348,73 @@ elif st.session_state.stage == "refine_search":
 
             with st.spinner("🧠 Analyzing..."):
                 response = agent(st.session_state.messages)
+                if response.get("results"):
+                    st.session_state.refined_search_results = response["results"]
+                st.session_state.messages.append({"role": "assistant", "content": response["message"]})
 
-            # Don't add it again if we're showing it in the expander
-            refined_message = response["message"]
-            st.session_state.results = response.get("results", st.session_state.results)
+        # ✅ Always show refined results if available
+        if st.session_state.refined_search_results:
+            st.markdown("### 🔍 Refined Search Results")
+            for idx, result in enumerate(st.session_state.refined_search_results, 1):
+                # Extract year from content
+                year_pattern = r'20[0-2]\d|19\d{2}'  # Matches years from 1900-2029
+                content_years = re.findall(year_pattern, result.get('content', ''))
+                # Use the first year found or empty string if none found
+                year = content_years[0] if content_years else ""
+                
+                # Use URL as fallback if title is just "pdf"
+                display_title = result['title'] if result['title'].lower() != "pdf" else result['url'].split('/')[-1]
+                if year:
+                    display_title = f"{display_title} ({year})"
 
-            # 🔽 Show the assistant's response in a nice expandable box
-            with st.expander("Click to view analysis results"):
-                st.markdown(response["message"])
+                # Create columns for the result and buttons
+                col1, col2, col3 = st.columns([0.8, 0.1, 0.1])
+                
+                with col1:
+                    with st.expander(f"{idx}. {display_title}"):
+                        st.write(result["content"][:300] + "...")
+                        st.markdown(f"[🔗 View source]({result['url']})")
+                
+                with col2:
+                    # Check if result is already in research box
+                    is_in_box = result in st.session_state.selected_results
+                    button_label = "📌" if not is_in_box else "✅"
+                    if st.button(button_label, key=f"add_refined_{idx}", help="Add to My Box"):
+                        if not is_in_box:
+                            st.session_state.selected_results.append(result)
+                        else:
+                            st.session_state.selected_results.remove(result)
+                        st.rerun()
+                
+                with col3:
+                    # Check if result is already in refinement list
+                    is_in_refinement = result in st.session_state.refined_results
+                    refine_label = "🔍" if not is_in_refinement else "✅"
+                    if st.button(refine_label, key=f"refine_refined_{idx}", help="Select for refined topic"):
+                        if not is_in_refinement:
+                            st.session_state.refined_results.append(result)
+                        else:
+                            st.session_state.refined_results.remove(result)
+                        st.rerun()
 
-            # ✅ Display the response only if it exists
-            if refined_message.strip():
-                st.markdown("### Analysis Results")
-                st.markdown(refined_message)
-            else:
-                st.info("No insights were generated from this query.")
+            # Show current selections summary
+            st.divider()
+            sum_col1, sum_col2 = st.columns(2)
+            with sum_col1:
+                st.write(f"📚 Research Box: {len(st.session_state.selected_results)} items")
+            with sum_col2:
+                st.write(f"🔍 Selected for refinement: {len(st.session_state.refined_results)} items")
+
+            # Show navigation options after results
+            nav_col1, nav_col2 = st.columns(2)
+            with nav_col1:
+                if st.button("📚 Go to Research Box", use_container_width=True):
+                    st.session_state.stage = "research_box"
+                    st.rerun()
+            with nav_col2:
+                if st.button("🔍 Refine These Results", use_container_width=True):
+                    # Keep the current results for further refinement
+                    st.rerun()
 
 
 
