@@ -25,15 +25,6 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-st.write("""
-<div style="text-align: center;">
-    <h1 style="font-size: 20px; font-style: italic;">
-        Hello, fellow Urbanist! I'm Ombu, an agent to help you research<br>
-        urban trends and build hypotheses for your spatial analysis projects
-    </h1>
-</div>
-""", unsafe_allow_html=True)    
-
 # Initialize session state
 if "stage" not in st.session_state:
     st.session_state.stage = "initial"
@@ -60,6 +51,16 @@ if "all_search_results" not in st.session_state:
 
 # Stage: Initial input form
 if st.session_state.stage == "initial":
+    # Show welcome message only on initial page
+    st.write("""
+    <div style="text-align: center;">
+        <h1 style="font-size: 20px; font-style: italic;">
+            Hello, fellow Urbanist! I'm Ombu, an agent to help you research<br>
+            urban trends and build hypotheses for your spatial analysis projects
+        </h1>
+    </div>
+    """, unsafe_allow_html=True)    
+
     # add an introduction to the app
     st.write("""
     <div style="text-align: left;">
@@ -88,7 +89,7 @@ if st.session_state.stage == "initial":
         <br>
         <br>
     </div>
-    """, unsafe_allow_html=True)    
+    """, unsafe_allow_html=True)
 
     city = st.text_input("City / Region / Country")
 
@@ -313,7 +314,7 @@ elif st.session_state.stage == "research_box":
         display_title = format_result_title(result)
         
         # Create columns for the result and buttons
-        col1, col2, col3 = st.columns([0.75, 0.125, 0.125])
+        col1, col2, col3, col4 = st.columns([0.75, 0.125, 0.125, 0.125])
         
         with col1:
             with st.expander(f"{idx}. {display_title}"):
@@ -333,18 +334,44 @@ elif st.session_state.stage == "research_box":
                 st.rerun()
         
         with col3:
+            is_in_hypothesis = any(r["url"] == result["url"] for r in st.session_state.get("hypothesis_results", []))
+            button_icon = "✅" if is_in_hypothesis else "🔮"
+            if st.button(button_icon, key=f"hypothesis_box_{idx}", help="Take this to the Hypothesis Lab"):
+                if not is_in_hypothesis:
+                    if "hypothesis_results" not in st.session_state:
+                        st.session_state.hypothesis_results = []
+                    st.session_state.hypothesis_results.append(result)
+                    st.success(f"Added to Hypothesis Lab: {display_title}")
+                else:
+                    st.session_state.hypothesis_results = [r for r in st.session_state.hypothesis_results if r["url"] != result["url"]]
+                    st.info(f"Removed from Hypothesis Lab: {display_title}")
+                st.rerun()
+        
+        with col4:
             if st.button("🗑️", key=f"delete_box_{idx}", help="Delete this result"):
                 # Remove from both selected and refined results
                 st.session_state.selected_results = [r for r in st.session_state.selected_results if r["url"] != result["url"]]
                 st.session_state.refined_results = [r for r in st.session_state.refined_results if r["url"] != result["url"]]
+                if "hypothesis_results" in st.session_state:
+                    st.session_state.hypothesis_results = [r for r in st.session_state.hypothesis_results if r["url"] != result["url"]]
                 st.rerun()
 
     # Add Clear Box button at the bottom
     st.divider()
-    if st.button("🗑️ Clear Box", use_container_width=True):
-        st.session_state.selected_results = []
-        st.session_state.refined_results = []
-        st.rerun()
+    col_clear, col_hypothesis = st.columns([0.5, 0.5])
+    with col_clear:
+        if st.button("🗑️ Clear Box", use_container_width=True):
+            st.session_state.selected_results = []
+            st.session_state.refined_results = []
+            if "hypothesis_results" in st.session_state:
+                st.session_state.hypothesis_results = []
+            st.rerun()
+    
+    with col_hypothesis:
+        hypothesis_count = len(st.session_state.get("hypothesis_results", []))
+        if st.button(f"🔮 Take me now to the Hypothesis Lab \n\n ({hypothesis_count} studies)", use_container_width=True, type="primary"):
+            st.session_state.stage = "hypothesis"
+            st.rerun()
 
 elif st.session_state.stage == "refine_search":
     # Navigation options

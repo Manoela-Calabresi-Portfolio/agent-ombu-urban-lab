@@ -24,6 +24,8 @@ def get_system_prompt(user_prompt, mode="search"):
     2. Use comparative terms like "comparison", "multiple cities", "different cities"
     3. Exclude the original city from your search unless specifically requested
     4. Add terms like "case studies", "comparative study", "multiple cities" to your queries
+    6. For geographic searches, explicitly include the region/continent in your search query (e.g., "Asian cities", "European cities")
+    7. Verify each result's geographic location before including it
 
 - Available refinement actions include:
     - Focus on a specific aspect that the user will specify
@@ -44,6 +46,20 @@ def get_system_prompt(user_prompt, mode="search"):
         * Focus on cities of similar size or characteristics
         * Look for similar patterns, policies, or issues across different cities
         * Use time periods as a comparative factor
+    - GEOGRAPHIC CONSTRAINTS:
+        * If searching for a specific region, ONLY include cities from that region
+        * Double-check each result's location before including it
+        * If a result's location is unclear, exclude it
+        * Use geographic terms in your search query (e.g., "Asian cities", "European cities")
+        * Add "NOT" clauses to exclude non-relevant regions (e.g., "NOT Europe NOT America" when searching for Asian cities)
+        * Verify city locations using official sources or academic papers
+    - MULTI-CITY REQUIREMENTS:
+        * ALWAYS include "multiple cities" OR "comparative study" in your search query
+        * ALWAYS include at least 3 different city names in your search query
+        * NEVER focus on a single city unless explicitly requested
+        * If a search returns only one city, modify the query to include more cities
+        * Use OR operators to combine multiple cities (e.g., "Tokyo OR Seoul OR Singapore")
+        * Add "comparative analysis" to ensure multi-city results
 """
     elif mode == "hypothesis":
         mode_instructions = """
