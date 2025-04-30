@@ -392,14 +392,25 @@ elif st.session_state.stage == "refine_search":
     if not isinstance(st.session_state.selected_for_refinement, dict):
         st.session_state.selected_for_refinement = {}
     
+    # Show count of selected documents
+    if st.session_state.selected_for_refinement:
+        st.markdown(f"**Selected {len(st.session_state.selected_for_refinement)} documents for refinement:**")
+        # Display selected documents first
+        for idx, (url, result) in enumerate(st.session_state.selected_for_refinement.items(), 1):
+            display_title = format_result_title(result)
+            st.markdown(f"{idx}. **{display_title}** ✅")
+        st.divider()
+    
+    # Then show all documents
     for idx, result in enumerate(st.session_state.refined_results, 1):
         display_title = format_result_title(result)
+        is_selected = result["url"] in st.session_state.selected_for_refinement
         
         # Create columns for the result and buttons
         col1, col2, col3, col4 = st.columns([0.7, 0.1, 0.1, 0.1])
         
         with col1:
-            with st.expander(f"{idx}. {display_title}"):
+            with st.expander(f"{idx}. {display_title}" + (" ✅" if is_selected else "")):
                 st.write(result["content"][:300] + "...")
                 st.markdown(f"[🔗 View source]({result['url']})")
         
@@ -413,13 +424,14 @@ elif st.session_state.stage == "refine_search":
                 st.rerun()
         
         with col3:
-            is_selected = result["url"] in st.session_state.selected_for_refinement
             button_icon = "✅" if is_selected else "⏹️"
             if st.button(button_icon, key=f"refine_selected_{idx}", help="Select this document for refinement"):
                 if not is_selected:
                     st.session_state.selected_for_refinement[result["url"]] = result
+                    st.success(f"Selected for refinement: {display_title}")
                 else:
                     del st.session_state.selected_for_refinement[result["url"]]
+                    st.info(f"Deselected from refinement: {display_title}")
                 st.rerun()
 
         with col4:
