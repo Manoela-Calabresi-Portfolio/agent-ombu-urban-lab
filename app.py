@@ -28,7 +28,8 @@ st.markdown("""
 st.write("""
 <div style="text-align: center;">
     <h1 style="font-size: 20px; font-style: italic;">
-        an agent to help you research urban trends and build hypotheses for your spatial analysis projects
+        Hello, fellow Urbanist! I'm Ombu, an agent to help you research<br>
+        urban trends and build hypotheses for your spatial analysis projects
     </h1>
 </div>
 """, unsafe_allow_html=True)    
@@ -57,9 +58,38 @@ if "selected_for_refinement" not in st.session_state:
 if "all_search_results" not in st.session_state:
     st.session_state.all_search_results = []
 
-
 # Stage: Initial input form
 if st.session_state.stage == "initial":
+    # add an introduction to the app
+    st.write("""
+    <div style="text-align: left;">
+        <br>
+        <br>
+        <span style="font-weight: bold; font-size: 1.2em;">💬 What would you like to explore today?</span>
+        <br>
+        "Evolution of green corridors in Barcelona (2000–2024)"
+        <br>
+        "Case studies on cycling infrastructure in South America"
+        <br>
+        "Post-pandemic strategies for accessibility maps in Seoul"
+        <br><br>
+        <span style="font-weight: bold; font-size: 1.2em;">🌐 This tool will:</span>
+        <br>
+        - Search serious sources (gov reports, NGOs, academic journals)  
+        <br>
+        - Summarize them in 3 bullets  
+        <br>
+        - Help you build hypotheses for spatial analysis  
+        <br>
+        - Let you save and compare documents in your Research Box
+        <br>
+        <br>
+        <span style="font-weight: bold; font-size: 1.2em;">Start by defining your research parameters:</span>
+        <br>
+        <br>
+    </div>
+    """, unsafe_allow_html=True)    
+
     city = st.text_input("City / Region / Country")
 
     if city:
@@ -68,29 +98,60 @@ if st.session_state.stage == "initial":
             location = geolocator.geocode(city)
 
             if location:
-                m = folium.Map(location=[location.latitude, location.longitude], zoom_start=12)
-                folium.Marker([location.latitude, location.longitude], popup=location.address, tooltip=city).add_to(m)
+                m = folium.Map(
+                    location=[location.latitude, location.longitude],
+                    zoom_start=12,
+                    tiles='CartoDB positron',  # Light grayscale map
+                    attr='CartoDB'
+                )
 
                 osm_id = location.raw.get('osm_id')
                 osm_type = location.raw.get('osm_type')
                 if osm_id and osm_type:
                     try:
-                        nominatim_url = f"https://nominatim.openstreetmap.org/details.php?osmtype={osm_type[0].upper()}&osmid={osm_id}&format=json"
-                        session = requests.Session()
-                        retry = requests.adapters.HTTPAdapter(max_retries=3)
-                        session.mount('https://', retry)
-                        response = session.get(nominatim_url, headers={'User-Agent': 'urban_lab_app'}, timeout=10)
-                        data = response.json()
-
-                        if 'geometry' in data and 'coordinates' in data['geometry']:
-                            coords = data['geometry']['coordinates'][0]
-                            boundary_coords = [[point[1], point[0]] for point in coords if len(point) >= 2]
-                            if boundary_coords:
-                                folium.Polygon(locations=boundary_coords, color='#3186cc', fill=True,
-                                               fill_color='#3186cc', fill_opacity=0.2,
-                                               popup=f'Boundary of {city}').add_to(m)
-                    except:
-                        st.warning("Could not fetch boundary data.")
+                        # Get the boundary data from Nominatim
+                        nominatim_url = f"https://nominatim.openstreetmap.org/details.php?osmtype={osm_type[0].upper()}&osmid={osm_id}&class=boundary&format=json"
+                        headers = {
+                            'User-Agent': 'Mozilla/5.0 (compatible; urban_lab_app/1.0)',
+                            'Accept': 'application/json'
+                        }
+                        response = requests.get(nominatim_url, headers=headers, timeout=15)
+                        
+                        if response.ok:
+                            data = response.json()
+                            if 'geometry' in data and 'coordinates' in data['geometry']:
+                                coords = data['geometry']['coordinates']
+                                boundary_coords = []
+                                
+                                try:
+                                    # Debug the actual values
+                                    st.write("Raw coordinates:", coords)
+                                    
+                                    # Create a circle with 10km radius around the city center
+                                    folium.Circle(
+                                        location=[location.latitude, location.longitude],
+                                        radius=10000,  # 10km in meters
+                                        color='#4A90E2',      # Blue border
+                                        weight=2,             # Border width
+                                        fill=True,
+                                        fill_color='#4A90E2', # Blue fill
+                                        fill_opacity=0.3,     # Semi-transparent
+                                        popup=f'10km radius around {city}'
+                                    ).add_to(m)
+                                    
+                                except Exception as e:
+                                    st.warning(f"Error processing coordinates: {str(e)}")
+                                    st.write("Raw coordinates:", coords)
+                            else:
+                                st.warning("No boundary data found for this location")
+                                st.write("Available data keys:", list(data.keys()))
+                                if 'geometry' in data:
+                                    st.write("Geometry keys:", list(data['geometry'].keys()))
+                        else:
+                            st.warning(f"Failed to fetch boundary data: HTTP {response.status_code}")
+                            st.write("Response:", response.text[:500])
+                    except Exception as e:
+                        st.warning(f"Error fetching boundary data: {str(e)}")
 
                 folium_static(m)
 
@@ -145,6 +206,11 @@ if st.session_state.stage == "initial":
 
 # Stage: Chat
 elif st.session_state.stage == "chat":
+    # add a back to research parameters button
+    if st.button("← Back to Research Parameters"):
+        st.session_state.stage = "initial"
+        st.rerun()
+
     st.subheader("💬 Research Assistant")
 
     # Display search results first
@@ -181,8 +247,9 @@ elif st.session_state.stage == "chat":
 
     col_box, col_refine = st.columns(2)
     
+    
     with col_box:
-        st.markdown("### 📚 Research Box")
+        st.markdown("###### Sending to Research Box: ")
         if st.session_state.selected_results:
             col_count, col_clear = st.columns([0.7, 0.3])
             with col_count:
@@ -192,14 +259,14 @@ elif st.session_state.stage == "chat":
                     st.session_state.selected_results = []
                     st.rerun()
             
-            if st.button("✨ Open Research Box", use_container_width=True, type="primary"):
+            if st.button(f"✨ Go to my Research Box", use_container_width=True, type="primary"):
                 st.session_state.stage = "research_box"
                 st.rerun()
         else:
             st.info("No items selected yet")
     
     with col_refine:
-        st.markdown("### 🔍 For Refinement")
+        st.markdown("###### Sending to the Refinement Lab: ")
         if st.session_state.refined_results:
             col_count, col_clear = st.columns([0.7, 0.3])
             with col_count:
@@ -238,12 +305,46 @@ elif st.session_state.stage == "research_box":
         st.session_state.stage = "chat"
         st.rerun()
     
+    # Show count of items selected for refinement
+    if st.session_state.refined_results:
+        st.write(f"🔎{len(st.session_state.refined_results)} items selected for refinement")
+    
     for idx, result in enumerate(st.session_state.selected_results, 1):
         display_title = format_result_title(result)
         
-        with st.expander(f"{idx}. {display_title}"):
-            st.write(result["content"][:300] + "...")
-            st.markdown(f"[🔗 View source]({result['url']})")
+        # Create columns for the result and buttons
+        col1, col2, col3 = st.columns([0.75, 0.125, 0.125])
+        
+        with col1:
+            with st.expander(f"{idx}. {display_title}"):
+                st.write(result["content"][:300] + "...")
+                st.markdown(f"[🔗 View source]({result['url']})")
+        
+        with col2:
+            is_in_refinement = any(r["url"] == result["url"] for r in st.session_state.refined_results)
+            button_icon = "✅" if is_in_refinement else "🔎"
+            if st.button(button_icon, key=f"refine_box_{idx}", help="Send to Refinement Lab"):
+                if not is_in_refinement:
+                    st.session_state.refined_results.append(result)
+                    st.success(f"Added to refinement: {display_title}")
+                else:
+                    st.session_state.refined_results = [r for r in st.session_state.refined_results if r["url"] != result["url"]]
+                    st.info(f"Removed from refinement: {display_title}")
+                st.rerun()
+        
+        with col3:
+            if st.button("🗑️", key=f"delete_box_{idx}", help="Delete this result"):
+                # Remove from both selected and refined results
+                st.session_state.selected_results = [r for r in st.session_state.selected_results if r["url"] != result["url"]]
+                st.session_state.refined_results = [r for r in st.session_state.refined_results if r["url"] != result["url"]]
+                st.rerun()
+
+    # Add Clear Box button at the bottom
+    st.divider()
+    if st.button("🗑️ Clear Box", use_container_width=True):
+        st.session_state.selected_results = []
+        st.session_state.refined_results = []
+        st.rerun()
 
 elif st.session_state.stage == "refine_search":
     # Navigation options
@@ -252,12 +353,13 @@ elif st.session_state.stage == "refine_search":
         if st.button("← Back to Results"):
             st.session_state.stage = "chat"
             st.rerun()
-        if st.button("✨ Go to my research box"):
-            st.session_state.stage = "research_box"
-            st.rerun()
+    
+    if st.button(f"✨ Go to my research box\n({len(st.session_state.selected_results)} studies)", use_container_width=True):
+        st.session_state.stage = "research_box"
+        st.rerun()
     
     # Show documents first
-    st.markdown("#### Let me help you refine your search 🔍 here are you selected documents:")
+    st.markdown("#### Let me help you refine your search. Start by selecting the documents you want to refine:")
     
     # Ensure selected_for_refinement is a dictionary
     if not isinstance(st.session_state.selected_for_refinement, dict):
@@ -312,25 +414,36 @@ elif st.session_state.stage == "refine_search":
     if st.session_state.selected_for_refinement:
         st.write(f"Selected {len(st.session_state.selected_for_refinement)} documents for refinement")
     
-    # Then show refinement options
-    st.markdown("### What would you like to know about these documents?")
-    st.write("Choose an analysis approach and keep refining until you're ready to move to your Research Box.")
+    # Add Clear Refinement Lab button
+    if st.button("🗑️ Clear Refinement Lab", key="clear_refinement_lab_btn_1", use_container_width=True):
+        st.session_state.refined_results = []
+        st.session_state.refined_search_results = []
+        st.session_state.selected_for_refinement = {}
+        st.rerun()
     
-    # Create a centered container with custom CSS
+    # Then show refinement options
     st.markdown("""
         <style>
-        .centered-container {
-            max-width: 800px;
-            margin: auto;
-            padding: 1rem;
+        /* Style for text input */
+        div[data-baseweb="input"] {
+            background-color: #cb8377 !important;
+        }
+        div[data-baseweb="input"] input {
+            background-color: #cb8377 !important;
+            color: white !important;
+            border-color: white !important;
+        }
+        div[data-baseweb="input"] input::placeholder {
+            color: rgba(255, 255, 255, 0.7) !important;
         }
         </style>
+        <div>
+            <h3 style="margin: 0;">How would you like to further explore these documents?</h3>
+            <p style="margin-top: 10px;">Choose an analysis approach and keep refining until you're ready to move to your Research Box.</p>
+        </div>
     """, unsafe_allow_html=True)
 
     with st.container():
-        st.markdown('<div class="centered-container">', unsafe_allow_html=True)
-        
-        # Two equal columns for options and input
         col_left, col_right = st.columns(2)
         
         with col_left:
@@ -338,64 +451,61 @@ elif st.session_state.stage == "refine_search":
                 "Analysis approach:",
                 [
                     "Focus on a specific aspect",
-                    "Compare specific elements",
-                    "Find connections",
+                    "Compare specific elements", 
+                    "Find connections", 
                     "Extract data/statistics",
                     "Look for data sources",
                     "Look for similar studies",
                     "Look for trends",
                     "Look for case studies",
                     "Other"
-                ]
+                ],
+                key="refine_option"
             )
         
         with col_right:
             if refine_option == "Focus on a specific aspect":
-                refined_topic = st.text_input("What specific aspect would you like to focus on?")
+                refined_topic = st.text_input("What specific aspect would you like to focus on?", key="refined_topic_input")
                 prompt_prefix = f"Focus on {refined_topic} within these documents"
             elif refine_option == "Compare specific elements":
-                refined_topic = st.text_input("What elements would you like to compare?")
+                refined_topic = st.text_input("What elements would you like to compare?", key="refined_topic_input")
                 prompt_prefix = f"Compare {refined_topic} across these documents"
             elif refine_option == "Find connections":
-                refined_topic = st.text_input("What kind of connections are you looking for?")
+                refined_topic = st.text_input("What kind of connections are you looking for?", key="refined_topic_input")
                 prompt_prefix = f"Identify connections related to {refined_topic} between these documents"
             elif refine_option == "Extract data/statistics":
-                refined_topic = st.text_input("What kind of data or statistics are you looking for?")
+                refined_topic = st.text_input("What kind of data or statistics are you looking for?", key="refined_topic_input")
                 prompt_prefix = f"Extract and analyze data about {refined_topic} from these documents"
             elif refine_option == "Look for data sources":
-                refined_topic = st.text_input("What type of data sources are you interested in?")
+                refined_topic = st.text_input("What type of data sources are you interested in?", key="refined_topic_input")
                 prompt_prefix = f"Find data sources related to {refined_topic} in these documents"
             elif refine_option == "Look for similar studies":
-                refined_topic = st.text_input("What aspects of these studies would you like to compare?")
+                refined_topic = st.text_input("What aspects of these studies would you like to compare?", key="refined_topic_input")
                 prompt_prefix = f"Find similar studies focusing on {refined_topic}"
             elif refine_option == "Look for trends":
-                refined_topic = st.text_input("What type of trends are you looking for?")
+                refined_topic = st.text_input("What type of trends are you looking for?", key="refined_topic_input")
                 prompt_prefix = f"Identify trends related to {refined_topic} in these documents"
             elif refine_option == "Look for case studies":
-                refined_topic = st.text_input("What type of case studies are you interested in?")
+                refined_topic = st.text_input("What type of case studies are you interested in?", key="refined_topic_input")
                 prompt_prefix = f"Find case studies related to {refined_topic}"
             else:  # Other
-                refined_topic = st.text_input("What would you like to explore?")
+                refined_topic = st.text_input("What would you like to explore?", key="refined_topic_input")
                 prompt_prefix = f"Explore {refined_topic} in these documents"
 
-            analyze_button = st.button("🔍 Analyze", use_container_width=True)
-
-        st.markdown('</div>', unsafe_allow_html=True)
+            analyze_button = st.button("🔍 Analyze", key="analyze_btn")
 
         if analyze_button and refined_topic:
             st.session_state.just_analyzed = True
             st.session_state.mode = "refine"
 
-            # Construct a more specific prompt for multi-city comparison
+            # Construct the refined prompt
             refined_prompt = f"{prompt_prefix}:\n"
             refined_prompt += "\nSelected documents for reference:\n"
             for result in st.session_state.refined_results:
                 refined_prompt += f"\n- {result['title']}"
             
-            # Add instruction for multi-city search while respecting the user's specific request
-            refined_prompt += "\n\nIMPORTANT: Please analyze and find comparative studies from multiple cities, focusing on the specific geographical areas and contexts mentioned in the request."
-            
-            # Use the system prompt from prompts.py with mode=refine
+            # The system prompt from prompts.py will be automatically used by the agent
+            # when mode="refine" is set in session state
             st.session_state.messages = [
                 {"role": "user", "content": refined_prompt}
             ]
@@ -406,7 +516,7 @@ elif st.session_state.stage == "refine_search":
                     # Store all results in both places
                     st.session_state.refined_search_results = response["results"].copy()
                     st.session_state.all_search_results = response["results"].copy()
-                    st.session_state.messages.append({"role": "assistant", "content": response["message"]})
+                st.session_state.messages.append({"role": "assistant", "content": response["message"]})
 
         # Show refined results outside the analyze button block
         if st.session_state.refined_search_results:
@@ -476,6 +586,14 @@ elif st.session_state.stage == "refine_search":
                 st.write(f"Selected {len(st.session_state.selected_for_refinement)} documents for refinement")
             if st.session_state.selected_results:
                 st.write(f"Added {len(st.session_state.selected_results)} documents to Research Box")
+
+            # Add Clear Refinement Lab button at the bottom
+            st.divider()
+            if st.button("🗑️ Clear Refinement Lab", key="clear_refinement_lab_btn_2", use_container_width=True):
+                st.session_state.refined_results = []
+                st.session_state.refined_search_results = []
+                st.session_state.selected_for_refinement = {}
+                st.rerun()
 
 
 
