@@ -773,6 +773,6 @@ elif st.session_state.stage == "hypothesis":
                     st.rerun()
 
     else:
-        st.info("Select documents to use in the Hypothesis Lab.")
+        st.info("Select documents to use in our Hypothesis Lab.")
 
 
