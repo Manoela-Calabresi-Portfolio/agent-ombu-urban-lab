@@ -22,6 +22,43 @@ st.markdown("""
     .stApp {
         background-color: #f0f0f0;
     }
+    .dialog-bubble {
+        background: #fff;
+        border-radius: 18px;
+        box-shadow: 0 2px 16px rgba(0,0,0,0.07);
+        padding: 2rem 2.5rem;
+        margin: 2rem auto 1rem auto;
+        max-width: 600px;
+        font-size: 1.15rem;
+        position: relative;
+    }
+    .dialog-bubble strong {
+        font-size: 1.2em;
+    }
+    .dialog-arrow {
+        text-align: center;
+        font-size: 2.5rem;
+        margin: 0;
+        color: #4A90E2;
+    }
+    .hypothesis-bubble {
+        background: #fff;
+        border-radius: 18px;
+        box-shadow: 0 2px 16px rgba(0,0,0,0.07);
+        padding: 2rem 2.5rem 1.2rem 2.5rem;
+        margin: 2rem auto 1.5rem auto;
+        max-width: 700px;
+        text-align: center;
+        font-size: 2rem;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.7em;
+    }
+    .hypothesis-bubble .emoji {
+        font-size: 2.2rem;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -52,44 +89,33 @@ if "all_search_results" not in st.session_state:
 # Stage: Initial input form
 if st.session_state.stage == "initial":
     # Show welcome message only on initial page
-    st.write("""
-    <div style="text-align: center;">
-        <h1 style="font-size: 20px; font-style: italic;">
-            Hello, fellow Urbanist! I'm Ombu, an agent to help you research<br>
-            urban trends and build hypotheses for your spatial analysis projects
-        </h1>
+    st.markdown("""
+    <div class="dialog-bubble">
+        <strong>👋 Hello, fellow Urbanist!</strong><br>
+        I'm <b>Ombu</b>, an agent to help you research urban trends and build hypotheses for your spatial analysis projects.<br><br>
+        <b>What would you like to explore today?</b>
+        <ul>
+            <li>Evolution of green corridors in Barcelona (2000–2024)</li>
+            <li>Case studies on cycling infrastructure in South America</li>
+            <li>Post-pandemic strategies for accessibility maps in Seoul</li>
+        </ul>
     </div>
-    """, unsafe_allow_html=True)    
+    <div class="dialog-arrow">⬇️</div>
+    """, unsafe_allow_html=True)
 
-    # add an introduction to the app
-    st.write("""
-    <div style="text-align: left;">
-        <br>
-        <br>
-        <span style="font-weight: bold; font-size: 1.2em;">💬 What would you like to explore today?</span>
-        <br>
-        "Evolution of green corridors in Barcelona (2000–2024)"
-        <br>
-        "Case studies on cycling infrastructure in South America"
-        <br>
-        "Post-pandemic strategies for accessibility maps in Seoul"
-        <br><br>
-        <span style="font-weight: bold; font-size: 1.2em;">🌐 This tool will:</span>
-        <br>
-        - Search serious sources (gov reports, NGOs, academic journals)  
-        <br>
-        - Summarize them in 3 bullets  
-        <br>
-        - Help you build hypotheses for spatial analysis  
-        <br>
-        - Let you save and compare documents in your Research Box
-        <br>
-        <br>
-        <span style="font-weight: bold; font-size: 1.2em;">Start by defining your research parameters:</span>
-        <br>
-        <br>
+    st.markdown("""
+    <div class="dialog-bubble">
+        <strong>🌐 What can this tool do?</strong>
+        <ul>
+            <li>Search serious sources (gov reports, NGOs, academic journals)</li>
+            <li>Summarize them in 3 bullets</li>
+            <li>Help you build hypotheses for spatial analysis</li>
+            <li>Let you save and compare documents in your Research Box</li>
+        </ul>
     </div>
     """, unsafe_allow_html=True)
+
+    st.markdown("### Start by defining your research parameters:")
 
     city = st.text_input("City / Region / Country")
 
@@ -177,9 +203,30 @@ if st.session_state.stage == "initial":
     with col2:
         end_year = st.selectbox("To", years, index=0)
     timeframe = f"{start_year}-{end_year}"
-    doc_type = st.selectbox("Document Type", ["All Types", "Reports", "Research Papers", "Urban Strategy Documents", "Technical Reports", "Smart City Projects"])
+    st.markdown("**Document Type**")
+    doc_types = ["Reports", "Research Papers", "Urban Strategy Documents", "Technical Reports", "Smart City Projects"]
+
+    # Use multiselect to allow checking more than one document type
+    # By default, no document types are selected; user must choose
+    selected_doc_types = st.multiselect(
+        "Select one or more document types:",
+        options=doc_types,
+        default=[]
+    )
+
+    # Define doc_type for downstream use
+    if not selected_doc_types:
+        doc_type = "All Types"
+    elif len(selected_doc_types) == 1:
+        doc_type = selected_doc_types[0]
+    else:
+        doc_type = ", ".join(selected_doc_types)
+
+    if not selected_doc_types:
+        selected_doc_types.append("All Types")
+
+    doc_types_str = ", ".join(selected_doc_types)
     num_results = st.number_input("Number of results", min_value=1, max_value=10, value=5)
-    
     if st.button("🔍 Start Research"):
         if not st.session_state.selected_location:
             st.warning("Please enter a valid city and wait for the map to load.")
@@ -634,5 +681,98 @@ elif st.session_state.stage == "refine_search":
                 st.session_state.selected_for_refinement = {}
                 st.rerun()
 
+elif st.session_state.stage == "hypothesis":
+    st.markdown("""
+    <div class="hypothesis-bubble">
+        <span class="emoji">🔮</span> Hypothesis Lab
+    </div>
+    """, unsafe_allow_html=True)
+
+    if st.button("← Back to Research Box"):
+        st.session_state.stage = "research_box"
+        st.rerun()
+
+    if "hypothesis_results" in st.session_state and st.session_state.hypothesis_results:
+        st.write(f"Based on {len(st.session_state.hypothesis_results)} selected documents:")
+
+        for idx, result in enumerate(st.session_state.hypothesis_results, 1):
+            display_title = format_result_title(result)
+            with st.expander(f"{idx}. {display_title}"):
+                st.write(result["content"][:300] + "...")
+                st.markdown(f"[🔗 View source]({result['url']})")
+
+        st.markdown("---")
+
+        if "initial_hypotheses" not in st.session_state:
+            if st.button("✨ Generate Hypotheses"):
+                prompt = (
+                    "You are an urban research assistant helping generate spatial analysis hypotheses.\n"
+                    "Based on the following studies, suggest exactly 3 researchable hypotheses that could be explored using spatial data.\n"
+                    "Each hypothesis should:\n"
+                    "- Be clearly worded (1–2 sentences)\n"
+                    "- Mention a spatial trend, relationship, or variable (e.g., green space access, density, mobility, land use)\n"
+                    "- Be relevant to urban planning or geography\n"
+                    "Format them as a numbered list (1., 2., 3.).\n"
+                    "If you cannot find enough hypotheses, make them up based on the document titles. "
+                    "Return only a numbered list of 3 hypotheses, nothing else. Do not include any introduction or summary.\n\n"
+                )
+                for result in st.session_state.hypothesis_results:
+                    prompt += f"- {result['title']}\n"
+
+                st.session_state.messages = [{"role": "user", "content": prompt}]
+                st.session_state.mode = "hypothesis"
+                st.session_state.trigger_hypothesis_generation = True
+                st.rerun()
+
+        if st.session_state.get("trigger_hypothesis_generation"):
+            with st.spinner("🧠 Thinking..."):
+                response = agent(st.session_state.messages)
+                st.session_state.initial_hypotheses = response["message"]
+            st.session_state.trigger_hypothesis_generation = False
+            st.rerun()
+
+        if "initial_hypotheses" in st.session_state:
+            st.markdown("### ✅ Suggested Hypotheses")
+
+            # Extract numbered hypotheses (1., 2., 3.)
+            hypotheses = re.findall(r"\d+\.\s+(.*?)(?=\n\d+\.|\Z)", st.session_state.initial_hypotheses, re.DOTALL)
+            # Fallback: try bullet points
+            if len(hypotheses) < 3:
+                hypotheses += re.findall(r"^-\s+(.*?)(?=\n-|\\Z)", st.session_state.initial_hypotheses, re.MULTILINE | re.DOTALL)
+
+            if len(hypotheses) >= 3:
+                hypotheses = hypotheses[:3]
+                selected = st.radio("Select one hypothesis to refine:", hypotheses, key="selected_hypothesis")
+                if selected:
+                    st.markdown("---")
+                    st.markdown("### 🗣️ Chat to refine this hypothesis")
+                    st.info("Great choice! Let's refine this hypothesis together. What would you like to adjust or explore further?")
+
+                    if "chat_history" not in st.session_state:
+                        st.session_state.chat_history = [{"role": "system", "content": f"You are helping refine this hypothesis: '{selected}'"}]
+
+                    if prompt := st.chat_input("Refine your hypothesis..."):
+                        st.session_state.chat_history.append({"role": "user", "content": prompt})
+                        with st.chat_message("user"):
+                            st.markdown(prompt)
+
+                        with st.spinner("Thinking..."):
+                            response = agent(st.session_state.chat_history)
+                            st.session_state.chat_history.append({"role": "assistant", "content": response["message"]})
+
+                    for msg in st.session_state.chat_history:
+                        with st.chat_message(msg["role"]):
+                            st.markdown(msg["content"])
+            else:
+                st.warning("Could not extract 3 hypotheses. Try generating again or check the raw LLM response below.")
+                st.markdown("#### Raw LLM response:")
+                st.code(st.session_state.initial_hypotheses)
+                if st.button("🔄 Retry Hypothesis Generation"):
+                    del st.session_state["initial_hypotheses"]
+                    st.session_state.trigger_hypothesis_generation = True
+                    st.rerun()
+
+    else:
+        st.info("Select documents to use in the Hypothesis Lab.")
 
 

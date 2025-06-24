@@ -1,4 +1,8 @@
 import os
+import certifi
+os.environ["SSL_CERT_FILE"] = certifi.where()
+os.environ["REQUESTS_CA_BUNDLE"] = certifi.where()
+os.environ["CURL_CA_BUNDLE"] = certifi.where()
 import uuid
 from dotenv import load_dotenv
 from pinecone import Pinecone
@@ -18,7 +22,7 @@ pc = Pinecone(os.getenv("PINECONE_API_KEY"))
 # Initialize the vector database index
 index = pc.Index(os.getenv("PINECONE_INDEX_NAME"))
 # Initialize OpenAI for embeddings 
-client = OpenAI()
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 # Define the tools
 TOOLS = [
@@ -134,11 +138,11 @@ def web_search(city, topic, timeframe, doc_type, num_results=5):
     
 def invoke_model(messages):
     # Initialize the OpenAI client
-    client = OpenAI()
+    client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
     # Make a ChatGPT API call with tool calling
     completion = client.chat.completions.create(
-        model="gpt-4o-mini",
+        model="gpt-3.5-turbo",
         messages=messages
     )
 
@@ -175,9 +179,9 @@ def format_result_title(result):
 
 # create a function to help the user to create a hypothesis for a spatial analysis by prompting the user with questions and display the hypothesis in a bullet point format 
 def create_hypothesis(messages):
-    client = OpenAI()
+    client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
     completion = client.chat.completions.create(
-        model="gpt-4o-mini",
+        model="gpt-3.5-turbo",
         messages=messages
     )
     return completion.choices[0].message.content
