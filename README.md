@@ -33,7 +33,7 @@ Ombu Urban Lab is a research assistant designed to help urbanists find, organize
 This app uses a hybrid AI search workflow to retrieve and summarize relevant urban planning documents. The core logic combines **LLM summarization** with **semantic search** powered by third-party tools.
 
 ### 🔎 1. Tavily API — AI-powered Web Search  
-[Tavily](https://www.tavily.com/) is an intelligent search API optimized for LLMs. It’s used to retrieve high-quality, up-to-date sources (e.g., government reports, journal articles, policy briefs) based on the user’s research prompt.
+[Tavily](https://www.tavily.com/) is an intelligent search API optimized for LLMs. It's used to retrieve high-quality, up-to-date sources (e.g., government reports, journal articles, policy briefs) based on the user's research prompt.
 
 **Why Tavily?**
 - Returns focused results ideal for summarization  
@@ -61,35 +61,6 @@ You can initialize a Pinecone index with OpenAI embeddings to store summaries or
 | Prompt Construction  | Custom Agent | Builds smart prompts for refinement, trend analysis, or hypothesis creation|
 
 ---
-
-<<<<<<< HEAD
-## 📸 Demo Video and Interface Screenshots
-
-video: https://drive.google.com/file/d/1xy9AIq5Cr4s15NA7M4F2OSuEnYsLjO5R/view?usp=drive_link
-=======
-## 📸 Interface Screenshots
->>>>>>> 0641398 ("adding images to readme")
-
-![page 1.png](images/page 1.png)
-
-![page 1.1.png](images/page 1.1.png)
-
-![page 2.png](images/page 2.png)
-
-![page 2.2.png](images/page 2.2.png)
-
-![page 3.0.png](images/page 3.0.png)
-
-![page 3.1.png](images/page 3.1.png)
-
-![page 3.2.png](images/page 3.2.png)
-
-![page 4.1.png](images/page 4.1.png)
-
-![page 4.2.png](images/page 4.2.png)
-
-![page 4.3.png](images/page 4.3.png)
-
 
 ## 🛠 How to Run Locally
 
@@ -141,10 +112,33 @@ streamlit run app.py
 
 ---
 
+## 📸 Interface Screenshots
 
-## 📸 Demo Video
+![page 1.png](images/page 1.png)
 
-Coming soon...
+![page 1.1.png](images/page 1.1.png)
+
+![page 2.png](images/page 2.png)
+
+![page 2.2.png](images/page 2.2.png)
+
+![page 3.0.png](images/page 3.0.png)
+
+![page 3.1.png](images/page 3.1.png)
+
+![page 3.2.png](images/page 3.2.png)
+
+![page 4.1.png](images/page 4.1.png)
+
+![page 4.2.png](images/page 4.2.png)
+
+![page 4.3.png](images/page 4.3.png)
+
+
+## 🎥 Demo Video
+
+[▶️ Watch the demo here](https://drive.google.com/file/d/1xy9AIq5Cr4s15NA7M4F2OSuEnYsLjO5R/view?usp=drive_link)
+
 
 ## 🧠 Author
 
