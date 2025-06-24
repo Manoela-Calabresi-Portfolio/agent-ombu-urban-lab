@@ -29,25 +29,17 @@ Ombu Urban Lab is a research assistant designed to help urbanists find, organize
 
 ## 📸 Interface Screenshots
 
-![page 1.png](images/page 1.png)
+![page1](images/page1.png)  
+![page1.1](images/page1.1.png)  
+![page2](images/page2.png)  
+![page2.2](images/page2.2.png)  
+![page3.0](images/page3.0.png)  
+![page3.1](images/page3.1.png)  
+![page3.2](images/page3.2.png)  
+![page4.1](images/page4.1.png)  
+![page4.2](images/page4.2.png)  
+![page4.3](images/page4.3.png)
 
-![page 1.1.png](images/page 1.1.png)
-
-![page 2.png](images/page 2.png)
-
-![page 2.2.png](images/page 2.2.png)
-
-![page 3.0.png](images/page 3.0.png)
-
-![page 3.1.png](images/page 3.1.png)
-
-![page 3.2.png](images/page 3.2.png)
-
-![page 4.1.png](images/page 4.1.png)
-
-![page 4.2.png](images/page 4.2.png)
-
-![page 4.3.png](images/page 4.3.png)
 
 ## 🧠 Smart Search Architecture (Detailed)
 
