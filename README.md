@@ -2,6 +2,8 @@
 
 Ombu Urban Lab is a research assistant designed to help urbanists find, organize, and refine documents related to spatial analysis. It allows you to search serious sources (reports, strategies, academic papers), extract summaries, and co-develop hypotheses for urban projects.
 
+[TRY THE AGENT HERE:](https://ombu-urbanlab.streamlit.app)
+
 ## 🔍 What It Does
 
 - Search academic and professional documents about any urban topic
@@ -45,7 +47,6 @@ Ombu Urban Lab is a research assistant designed to help urbanists find, organize
 
 This app uses a hybrid AI search workflow to retrieve and summarize relevant urban planning documents. The core logic combines **LLM summarization** with **semantic search** powered by third-party tools.
 
-<<<<<<< HEAD
 
 ### 🔎 1. Tavily API — AI-powered Web Search  
 [Tavily](https://www.tavily.com/) is an intelligent search API optimized for LLMs. It's used to retrieve high-quality, up-to-date sources (e.g., government reports, journal articles, policy briefs) based on the user's research prompt.
@@ -128,8 +129,6 @@ streamlit run app.py
 
 ---
 
-
-<<<<<<< HEAD
 ## 🎥 Demo Video
 
 [▶️ Watch the demo here](https://drive.google.com/file/d/1xy9AIq5Cr4s15NA7M4F2OSuEnYsLjO5R/view?usp=drive_link)
