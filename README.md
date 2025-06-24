@@ -62,6 +62,29 @@ You can initialize a Pinecone index with OpenAI embeddings to store summaries or
 
 ---
 
+## 📸 Interface Screenshots
+
+![page 1.png](images/page 1.png)
+
+![page 1.1.png](images/page 1.1.png)
+
+![page 2.png](images/page 2.png)
+
+![page 2.2.png](images/page 2.2.png)
+
+![page 3.0.png](images/page 3.0.png)
+
+![page 3.1.png](images/page 3.1.png)
+
+![page 3.2.png](images/page 3.2.png)
+
+![page 4.1.png](images/page 4.1.png)
+
+![page 4.2.png](images/page 4.2.png)
+
+![page 4.3.png](images/page 4.3.png)
+
+
 ## 🛠 How to Run Locally
 
 1. **Clone the repository:**
