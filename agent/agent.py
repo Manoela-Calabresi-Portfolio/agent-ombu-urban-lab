@@ -5,15 +5,59 @@ from openai import OpenAI
 from agent.tools import TOOLS, save_memory, web_search
 from agent.prompts import get_system_prompt
 import re
+import os
+import certifi
+
+os.environ["SSL_CERT_FILE"] = certifi.where()
+os.environ["REQUESTS_CA_BUNDLE"] = certifi.where()
+os.environ["CURL_CA_BUNDLE"] = certifi.where()
 
 load_dotenv()
 
-def agent(messages):
-    client = OpenAI()
+def generate_hypotheses_from_documents(selected_docs, user_prompt=None):
+    client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+    # Build a prompt using the selected documents
+    doc_list = "\n".join([f"- {doc['title']}: {doc.get('content', '')[:200]}" for doc in selected_docs])
+    prompt = (
+        "You are an urban research assistant helping generate spatial analysis hypotheses.\n"
+        "Based on the following studies, suggest exactly 3 researchable hypotheses that could be explored using spatial data.\n"
+        "Each hypothesis should:\n"
+        "- Be clearly worded (1–2 sentences)\n"
+        "- Mention a spatial trend, relationship, or variable (e.g., green space access, density, mobility, land use)\n"
+        "- Be relevant to urban planning or geography\n"
+        "Format them as a numbered list (1., 2., 3.).\n"
+        "If you cannot find enough hypotheses, make them up based on the document titles. "
+        "Return only a numbered list of 3 hypotheses, nothing else. Do not include any introduction or summary.\n\n"
+    )
+    if user_prompt:
+        prompt += f"User request: {user_prompt}\n"
+    prompt += "Selected studies:\n" + doc_list
+    messages = [
+        {"role": "system", "content": "You are a helpful assistant for urban research."},
+        {"role": "user", "content": prompt}
+    ]
+    completion = client.chat.completions.create(
+        model="gpt-3.5-turbo",
+        messages=messages
+    )
+    return completion.choices[0].message.content
 
-    # Inject dynamic system prompt before calling the model
+def agent(messages):
+    client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
     mode = st.session_state.get("mode", "search")
     user_prompt = next((m["content"] for m in reversed(messages) if m["role"] == "user"), "")
+
+    # --- HYPOTHESIS MODE ---
+    if mode == "hypothesis":
+        # Use selected documents from session state
+        selected_docs = st.session_state.get("hypothesis_results", [])
+        if not selected_docs:
+            return {"message": "No documents selected for hypothesis generation."}
+        hypotheses = generate_hypotheses_from_documents(selected_docs, user_prompt)
+        return {"message": hypotheses}
+
+    # Inject dynamic system prompt before calling the model
     system_prompt = get_system_prompt(user_prompt, mode)
     
     # For refinement mode, add explicit instructions about the selected documents
@@ -28,7 +72,7 @@ def agent(messages):
     full_messages = [{"role": "system", "content": system_prompt}] + messages
 
     completion = client.chat.completions.create(
-        model="gpt-4o-mini",
+        model="gpt-3.5-turbo",
         tools=TOOLS,
         messages=full_messages
     )
@@ -93,7 +137,13 @@ def agent(messages):
                     if param not in tool_args:
                         tool_args[param] = "multiple cities" if param == "city" else "urban planning"
 
-                search_results = web_search(**tool_args)
+                search_results = web_search(
+                    tool_args["city"],
+                    tool_args["topic"],
+                    tool_args["timeframe"],
+                    tool_args["doc_type"],
+                    tool_args.get("num_results", 5)
+                )
 
                 if isinstance(search_results, str):
                     assistant_msg = search_results
@@ -111,7 +161,13 @@ def agent(messages):
                         if len(cities) < 3:
                             # If not enough cities, modify the search to be more specific
                             tool_args["topic"] = f"comparative case studies of {refined_topic} in multiple cities"
-                            search_results = web_search(**tool_args)
+                            search_results = web_search(
+                                tool_args["city"],
+                                tool_args["topic"],
+                                tool_args["timeframe"],
+                                tool_args["doc_type"],
+                                tool_args.get("num_results", 5)
+                            )
                         
                         assistant_msg = f"Here's what I found based on your refinement:\n\n"
                         assistant_msg += "\n".join(f"- {r['title']} ({r['url']})" for r in search_results)
@@ -129,13 +185,13 @@ def agent(messages):
                 })
 
                 return {
-                    "message": assistant_msg,
-                    "results": search_results if isinstance(search_results, list) else []
+                    "results": search_results if isinstance(search_results, list) else [],
+                    "message": assistant_msg
                 }
 
     return {
-        "message": response.content if response.content else str(response),
-        "results": []
+        "results": [],
+        "message": response.content if response.content else str(response)
     }
 
 def extract_cities(text):
@@ -187,3 +243,4 @@ def extract_cities(text):
                 found_cities.add(city)
     
     return found_cities
+

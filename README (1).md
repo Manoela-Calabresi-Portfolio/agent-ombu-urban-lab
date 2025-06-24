@@ -1,22 +1,8 @@
-# Ombu Urban Lab 🏙️
+# Ombu Urban Lab 🧭
 
-Ombu Urban Lab is a research assistant designed to help urbanists find, organize, and refine documents related to spatial analysis. It allows you to search serious sources (reports, strategies, academic papers), extract summaries, and co-develop hypotheses for urban projects.
+**Ombu** is your AI-powered research companion for uncovering urban trends and building spatial analysis hypotheses. Designed for urbanists, planners, and spatial analysts, the tool helps you search smarter, refine topics, and co-create research questions based on real documents.
 
-## 🔍 What It Does
-
-- Search academic and professional documents about any urban topic
-- Select documents for refinement or deeper analysis
-- Organize key results into a personal Research Box
-- Generate and refine spatial hypotheses with an AI agent
-
-## 🛠️ Tech Stack
-
-- Python
-- Streamlit
-- OpenAI API (`gpt-4o` or `gpt-4o-mini`)
-- Geopy + Nominatim (for geolocation)
-- Folium + Streamlit-Folium (for maps)
-- dotenv (for local secrets)
+---
 
 ## 🚀 Features
 
@@ -27,6 +13,7 @@ Ombu Urban Lab is a research assistant designed to help urbanists find, organize
 - 🔮 Co-create spatial hypotheses in the Hypothesis Lab
 - 🧪 Start a dialog to iteratively improve your research question
 
+---
 
 ## 🧠 Smart Search Architecture (Detailed)
 
@@ -112,19 +99,4 @@ streamlit run app.py
 
 ---
 
-
-## 📸 Demo Video
-
-Coming soon...
-
-## 🧠 Author
-
 Made with ❤️ by a spatial data analyst obsessed with clarity, cities, and clean research workflows.
-
-Manoela Calabresi | Urban Planner | Spatial Analyst
-📧 manoela.calabresi@gmail.com 
-https://www.linkedin.com/in/manoela-calabresi/
-
-
-
-

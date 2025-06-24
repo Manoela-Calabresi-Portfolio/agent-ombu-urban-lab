@@ -169,3 +169,40 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+
+# Environment files
+.env.*
+*.env
+
+# Python virtual environments
+venv/
+env/
+.venv/
+.myvenv/
+ENV/
+env.bak/
+venv.bak/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# VSCode and IDE settings
+.vscode/
+.idea/
+
+# Log files
+*.log
+
+# Test and temp files
+*.tmp
+*.temp
+*.bak
+
+# Output files
+*.out
+
+# Misc
+current_environment.txt
+show_certifi_path.py
+test.openai.key.py
