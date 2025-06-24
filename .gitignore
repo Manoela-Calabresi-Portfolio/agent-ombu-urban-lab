@@ -207,3 +207,5 @@ Thumbs.db
 current_environment.txt
 show_certifi_path.py
 test.openai.key.py
+
+video_demo/demo.mp4
