@@ -145,7 +145,10 @@ venv.bak/
 
 # mkdocs documentation
 /site
+<<<<<<< HEAD
 /video_demo
+=======
+>>>>>>> a36a0b62682bf6060537b5a0f0516a33e76f5f18
 
 # mypy
 .mypy_cache/
@@ -208,4 +211,6 @@ current_environment.txt
 show_certifi_path.py
 test.openai.key.py
 
+
 video_demo/demo.mp4
+
