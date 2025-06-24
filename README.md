@@ -18,15 +18,6 @@ Ombu Urban Lab is a research assistant designed to help urbanists find, organize
 - Folium + Streamlit-Folium (for maps)
 - dotenv (for local secrets)
 
-## 🚀 Features
-
-- 🌍 Define a city, topic, and timeframe for your research
-- 🔍 Search government reports, journals, strategy docs & more
-- 🧠 Summarize key documents using GPT
-- 📦 Save, compare, and refine your Research Box
-- 🔮 Co-create spatial hypotheses in the Hypothesis Lab
-- 🧪 Start a dialog to iteratively improve your research question
-
 ## 📸 Interface Screenshots
 
 ![page 1.png](images/page 1.png)
@@ -48,6 +39,16 @@ Ombu Urban Lab is a research assistant designed to help urbanists find, organize
 ![page 4.2.png](images/page 4.2.png)
 
 ![page 4.3.png](images/page 4.3.png)
+
+## 🚀 Features
+
+- 🌍 Define a city, topic, and timeframe for your research
+- 🔍 Search government reports, journals, strategy docs & more
+- 🧠 Summarize key documents using GPT
+- 📦 Save, compare, and refine your Research Box
+- 🔮 Co-create spatial hypotheses in the Hypothesis Lab
+- 🧪 Start a dialog to iteratively improve your research question
+
 
 ## 🧠 Smart Search Architecture (Detailed)
 
