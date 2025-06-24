@@ -27,7 +27,6 @@ Ombu Urban Lab is a research assistant designed to help urbanists find, organize
 - 🔮 Co-create spatial hypotheses in the Hypothesis Lab
 - 🧪 Start a dialog to iteratively improve your research question
 
-<<<<<<< HEAD
 ## 📸 Interface Screenshots
 
 ![page 1.png](images/page 1.png)
