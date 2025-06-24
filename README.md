@@ -28,11 +28,6 @@ Ombu Urban Lab is a research assistant designed to help urbanists find, organize
 - 🔮 Co-create spatial hypotheses in the Hypothesis Lab
 - 🧪 Start a dialog to iteratively improve your research question
 
-
-## 🧠 Smart Search Architecture (Detailed)
-
-This app uses a hybrid AI search workflow to retrieve and summarize relevant urban planning documents. The core logic combines **LLM summarization** with **semantic search** powered by third-party tools.
-
 ## 📸 Interface Screenshots
 
 ![page 1.png](images/page 1.png)
@@ -54,6 +49,11 @@ This app uses a hybrid AI search workflow to retrieve and summarize relevant urb
 ![page 4.2.png](images/page 4.2.png)
 
 ![page 4.3.png](images/page 4.3.png)
+
+## 🧠 Smart Search Architecture (Detailed)
+
+This app uses a hybrid AI search workflow to retrieve and summarize relevant urban planning documents. The core logic combines **LLM summarization** with **semantic search** powered by third-party tools.
+
 
 ### 🔎 1. Tavily API — AI-powered Web Search  
 [Tavily](https://www.tavily.com/) is an intelligent search API optimized for LLMs. It's used to retrieve high-quality, up-to-date sources (e.g., government reports, journal articles, policy briefs) based on the user's research prompt.
