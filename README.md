@@ -62,9 +62,13 @@ You can initialize a Pinecone index with OpenAI embeddings to store summaries or
 
 ---
 
+<<<<<<< HEAD
 ## 📸 Demo Video and Interface Screenshots
 
 video: https://drive.google.com/file/d/1xy9AIq5Cr4s15NA7M4F2OSuEnYsLjO5R/view?usp=drive_link
+=======
+## 📸 Interface Screenshots
+>>>>>>> 0641398 ("adding images to readme")
 
 ![page 1.png](images/page 1.png)
 
